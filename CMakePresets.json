@@ -5,6 +5,9 @@
             "name": "base",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "installDir": "${sourceDir}/out/install/${presetName}",
+            "environment": {
+                "LOCAL_WORKSPACE_FOLDER": "${sourceDir}"
+            },
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "On"
             }
