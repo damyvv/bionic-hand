@@ -124,12 +124,12 @@
             "hidden": true,
             "inherits": "base",
             "cacheVariables": {
-                "CMAKE_C_FLAGS_DEBUG": "-O2 -g",
                 "TARGET_MCU_VENDOR": "st"
             }
         },
         {
             "name": "stm32f429",
+            "hidden": true,
             "displayName": "stm32f429",
             "description": "Build for stm32f429",
             "inherits": "stm32",
@@ -139,6 +139,36 @@
                 "TARGET_MCU_FAMILY": "stm32f4xx",
                 "TARGET_MCU": "stm32f429"
             }
+        },
+        {
+            "name": "stm32f429-debug",
+            "displayName": "stm32f429 Debug",
+            "inherits": "stm32f429",
+            "cacheVariables": {
+                "CMAKE_C_FLAGS_DEBUG": "-g",
+                "CMAKE_CXX_FLAGS_DEBUG": "-g",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "stm32f429-release",
+            "displayName": "stm32f429 Release",
+            "inherits": "stm32f429",
+            "cacheVariables": {
+                "CMAKE_C_FLAGS_RELEASE": "-O2",
+                "CMAKE_CXX_FLAGS_RELEASE": "-O2",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "stm32f429-debug",
+            "configurePreset": "stm32f429-debug"
+        },
+        {
+            "name": "stm32f429-release",
+            "configurePreset": "stm32f429-release"
         }
     ]
 }
