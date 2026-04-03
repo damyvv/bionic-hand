@@ -1,0 +1,85 @@
+@startuml
+
+package hal {
+    interface PulseWidthModulation {
+        +SetDuty(dutyPercent: uint8): void
+        +SetPulse(pulseOn: uint32, period: uint32): void
+        +Start(): void
+        +Stop(): void
+    }
+
+    interface I2cMaster {
+        +SendData(address: uint8, data: uint8[], nextAction, onSent: Function): void
+        +ReceiveData(address: uint8, data: uint8[], nextAction, onReceived: Function): void
+        +SetErrorPolicy(policy: I2cErrorPolicy&): void
+        +ResetErrorPolicy(): void        
+    }
+
+    class I2cStm {
+        +SendData(address: uint8, data: uint8[], nextAction, onSent: Function): void
+        +ReceiveData(address: uint8, data: uint8[], nextAction, onReceived: Function): void
+        +SetErrorPolicy(policy: I2cErrorPolicy&): void
+        +ResetErrorPolicy(): void
+    }
+
+    I2cMaster <|.. I2cStm
+}
+
+class Pca9685 {
+    -i2c: I2cMaster
+    -address: uint8
+    -frequency: uint16
+    +Pca9685(i2c: I2cMaster, address: uint8, frequency: uint16)
+    +SetPwmFrequency(frequency: uint16): void
+}
+
+class Pca9685Channel {
+    -pca9685: Pca9685
+    -channel: uint8
+    +Pca9685Channel(pca9685: Pca9685, channel: uint8)
+}
+
+Pca9685 "1" *-- "16" Pca9685Channel
+I2cStm --o Pca9685
+Pca9685Channel ..|> PulseWidthModulation
+
+class Servo {
+    -pwm: PulseWidthModulation
+    +Servo(pwm: PulseWidthModulation)
+    +SetAngle(percent: float): void
+}
+
+class Finger {
+    -servo: Servo
+    -beginAngle: float
+    -endAngle: float
+    +Finger(servo: Servo, beginAngle: float, endAngle: float)
+    +SetPosition(percent: float): void
+}
+
+class Hand {
+    -fingers: Finger[]
+    +Hand(fingers: Finger[])
+    +SetFingerPosition(finger: FingerType, percent: float): void
+    +SetAllFingerPosition(percent: float): void
+}
+
+enum FingerType {
+    Thumb,
+    Index,
+    Middle,
+    Ring,
+    Little
+}
+
+class HandFactory {
+    +CreateHand(i2c: I2cMaster, address: uint8): Hand
+}
+
+Pca9685Channel --o Servo
+Servo --o Finger
+Finger --* Hand
+HandFactory ..> Hand : creates
+FingerType .. Hand : used in
+
+@enduml
