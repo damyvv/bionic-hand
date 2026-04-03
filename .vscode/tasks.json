@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "cmake",
+            "command": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Update WSL IP",
+            "type": "shell",
+            "command": "./scripts/get-wsl-ip.sh",
+            "problemMatcher": []
+        },
+        {
+            "label": "Setup OpenOCD",
+            "type": "shell",
+            "command": "./scripts/start-openocd-windows.sh",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Check OpenOCD",
+            "type": "shell",
+            "command": "timeout 2 nc -z $(cat .vscode/wsl-ip) 4444 || (echo 'OpenOCD not running, starting...' && ./scripts/start-openocd-windows.sh)",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Ensure OpenOCD",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Update WSL IP",
+                "Check OpenOCD"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

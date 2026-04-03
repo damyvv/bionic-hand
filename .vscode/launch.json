@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "configurations": [
+    {
+      "name": "STM32 Debug",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "external",
+      "gdbTarget": "${input:wslIp}:3333",
+      "executable": "${workspaceFolder}/build/stm32f429zi/src/robot_hand/robot_hand.elf",
+      "device": "STM32F429ZI",
+      "svdFile": "${workspaceFolder}/STM32F429.svd",
+      "preLaunchTask": "Ensure OpenOCD",
+      "preLaunchCommands": [
+        "monitor reset halt",
+        "delete breakpoints",
+        "load",
+        "monitor reset init"
+      ],
+      "breakpointType": "software"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "wslIp",
+      "type": "command",
+      "command": "extension.commandvariable.file.content",
+      "args": {
+        "fileName": "${workspaceFolder}/.vscode/wsl-ip"
+      }
+    }
+  ]
+}

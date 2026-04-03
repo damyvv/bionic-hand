@@ -1,0 +1,30 @@
+{
+  "name": "Philips Academy",
+  "image": "ghcr.io/philips-software/amp-devcontainer-cpp:latest",
+  "runArgs": [
+    "--network=host",
+    "--cap-add=SYS_PTRACE",
+    "--security-opt=seccomp:unconfined"
+  ],
+  "mounts": [
+    "source=/mnt/c,target=/mnt/c,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools",
+        "marus25.cortex-debug",
+        "rioj7.command-variable"
+      ],
+      "settings": {
+        "C_Cpp.intelliSenseEngine": "default",
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "cortex-debug.gdbPath": "/usr/bin/gdb-multiarch",
+        "task.allowAutomaticTasks": "on"
+      }
+    }
+  },
+  "updateContentCommand": "apt-get update && apt-get install -y iproute2 jq curl wget netcat-openbsd",
+  "postCreateCommand": "chmod +x scripts/*.sh && ./scripts/get-wsl-ip.sh && ./scripts/check-openocd.sh"
+}

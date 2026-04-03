@@ -1,174 +1,147 @@
 {
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "base",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "installDir": "${sourceDir}/out/install/${presetName}",
-            "environment": {
-                "LOCAL_WORKSPACE_FOLDER": "${sourceDir}"
-            },
-            "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "On"
-            }
-        },
-        {
-            "name": "windows-base",
-            "inherits": "base",
-            "hidden": true,
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl.exe",
-                "CMAKE_CXX_COMPILER": "cl.exe"
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            }
-        },
-        {
-            "name": "x64-debug",
-            "displayName": "x64 Debug",
-            "inherits": "windows-base",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x64-release",
-            "displayName": "x64 Release",
-            "inherits": "x64-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "x86-debug",
-            "displayName": "x86 Debug",
-            "inherits": "windows-base",
-            "architecture": {
-                "value": "x86",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x86-release",
-            "displayName": "x86 Release",
-            "inherits": "x86-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "linux-base",
-            "inherits": "base",
-            "hidden": true,
-            "generator": "Unix Makefiles",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_C_COMPILER": "gcc-14",
-                "CMAKE_CXX_COMPILER": "g++-14"
-            }
-        },
-        {
-            "name": "x64-debug-linux",
-            "displayName": "x64 Debug",
-            "inherits": "linux-base",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x64-release-linux",
-            "displayName": "x64 Release",
-            "inherits": "x64-debug-linux",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "x86-debug-linux",
-            "displayName": "x86 Debug",
-            "inherits": "linux-base",
-            "architecture": {
-                "value": "x86",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x86-release-linux",
-            "displayName": "x86 Release",
-            "inherits": "x86-debug-linux",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "stm32",
-            "hidden": true,
-            "inherits": "base",
-            "cacheVariables": {
-                "TARGET_MCU_VENDOR": "st"
-            }
-        },
-        {
-            "name": "stm32f429",
-            "hidden": true,
-            "displayName": "stm32f429",
-            "description": "Build for stm32f429",
-            "inherits": "stm32",
-            "toolchainFile": "${sourceDir}/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
-            "cacheVariables": {
-                "TARGET_CORTEX": "m4",
-                "TARGET_MCU_FAMILY": "stm32f4xx",
-                "TARGET_MCU": "stm32f429"
-            }
-        },
-        {
-            "name": "stm32f429-debug",
-            "displayName": "stm32f429 Debug",
-            "inherits": "stm32f429",
-            "cacheVariables": {
-                "CMAKE_C_FLAGS_DEBUG": "-g",
-                "CMAKE_CXX_FLAGS_DEBUG": "-g",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "stm32f429-release",
-            "displayName": "stm32f429 Release",
-            "inherits": "stm32f429",
-            "cacheVariables": {
-                "CMAKE_C_FLAGS_RELEASE": "-O2",
-                "CMAKE_CXX_FLAGS_RELEASE": "-O2",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "stm32f429-debug",
-            "configurePreset": "stm32f429-debug"
-        },
-        {
-            "name": "stm32f429-release",
-            "configurePreset": "stm32f429-release"
-        }
-    ]
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "defaults",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "HALST_BUILD_EXAMPLES": true
+      }
+    },
+    {
+      "name": "host",
+      "displayName": "Configuration for Host Tooling and Tests",
+      "inherits": "defaults",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+      },
+      "generator": "Ninja Multi-Config"
+    },
+    {
+      "name": "host-single-Debug",
+      "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, Debug",
+      "inherits": "defaults",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+      }
+    },
+    {
+      "name": "host-single-MinSizeRel",
+      "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, MinSizeRel",
+      "inherits": "defaults",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel",
+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+      }
+    },
+    {
+      "name": "stm32",
+      "hidden": true,
+      "inherits": "defaults",
+      "environment": {
+        "CMAKE_TOOLCHAIN_FILE": ""
+      },
+      "cacheVariables": {
+        "generator": "Ninja Multi-Config",
+        "EMIL_GENERATE_PACKAGE_CONFIG": false,
+        "TARGET_MCU_VENDOR": "st"
+      }
+    },
+    {
+      "name": "stm32g431",
+      "displayName": "stm32g431",
+      "description": "Build for stm32g431",
+      "inherits": "stm32",
+      "toolchainFile": "${sourceDir}/libs/amp-embedded-infra-lib/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
+      "cacheVariables": {
+        "TARGET_CORTEX": "m4",
+        "TARGET_MCU_FAMILY": "stm32g4xx",
+        "TARGET_MCU": "stm32g431"
+      }
+    },
+    {
+      "name": "stm32f429zi",
+      "displayName": "stm32f429zi",
+      "description": "Build for stm32f429zi",
+      "inherits": "stm32",
+      "toolchainFile": "${sourceDir}/libs/amp-embedded-infra-lib/cmake/toolchain-arm-gcc-m4-fpv4-sp-d16.cmake",
+      "cacheVariables": {
+        "TARGET_CORTEX": "m4",
+        "TARGET_MCU_FAMILY": "stm32f4xx",
+        "TARGET_MCU": "stm32f429"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "host-Debug",
+      "configuration": "Debug",
+      "configurePreset": "host"
+    },
+    {
+      "name": "host-Debug-WithPackage",
+      "configuration": "Debug",
+      "configurePreset": "host",
+      "targets": [
+        "all",
+        "package"
+      ]
+    },
+    {
+      "name": "host-RelWithDebInfo",
+      "configuration": "RelWithDebInfo",
+      "configurePreset": "host"
+    },
+    {
+      "name": "host-single-Debug",
+      "configuration": "Debug",
+      "configurePreset": "host-single-Debug"
+    },
+    {
+      "name": "release-package",
+      "configuration": "MinSizeRel",
+      "configurePreset": "host-single-MinSizeRel",
+      "targets": [
+        "package"
+      ]
+    },
+    {
+      "name": "stm32g431-RelWithDebInfo",
+      "configuration": "RelWithDebInfo",
+      "configurePreset": "stm32g431"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "defaults",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "host",
+      "configurePreset": "host",
+      "configuration": "Debug",
+      "inherits": "defaults"
+    },
+    {
+      "name": "host-single-Debug",
+      "configurePreset": "host-single-Debug",
+      "configuration": "Debug",
+      "inherits": "defaults"
+    }
+  ]
 }

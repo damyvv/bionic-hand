@@ -1,0 +1,9 @@
+[submodule "libs/amp-hal-st"]
+	path = libs/amp-hal-st
+	url = https://github.com/philips-software/amp-hal-st.git
+[submodule "libs/amp-embedded-infra-lib"]
+	path = libs/amp-embedded-infra-lib
+	url = https://github.com/philips-software/amp-embedded-infra-lib.git
+[submodule "libs/googletest"]
+	path = libs/googletest
+	url = https://github.com/google/googletest.git
