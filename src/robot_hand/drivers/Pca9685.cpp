@@ -1,4 +1,6 @@
 #include "Pca9685.hpp"
+
+#include "infra/util/ReallyAssert.hpp"
 #include <cmath>
 
 static constexpr uint8_t MODE1_REGISTER = 0x00;
@@ -8,13 +10,31 @@ static constexpr uint8_t LEDn_REGISTER_OFFSET = 4; // Each channel has 4 registe
 static constexpr float INTERNAL_OSCILLATOR_FREQUENCY = 25000000.0; // 25 MHz
 static constexpr uint16_t MAX_PWM_RESOLUTION = 4096; // 12-bit resolution
 
+namespace
+{
+    template<std::size_t... I>
+    std::array<Pca9685Channel, sizeof...(I)> MakeChannels(
+        Pca9685& owner,
+        std::index_sequence<I...>)
+    {
+        return { Pca9685Channel{ owner, static_cast<uint8_t>(I) }... };
+    }
+}
+
 Pca9685::Pca9685(hal::I2cMaster& i2c, hal::I2cAddress address, uint16_t frequency)
     : i2c(i2c)
     , address(address)
+    , channels(MakeChannels(*this, std::make_index_sequence<16>{}))
 {
     PushInitializationSequence();
     SetFrequency(frequency);
     ProcessI2cMessageQueue();
+}
+
+Pca9685Channel& Pca9685::GetChannel(uint8_t channel)
+{
+    really_assert(channel < channels.size());
+    return channels[channel];
 }
 
 void Pca9685::SetFrequency(uint16_t frequencyHz)

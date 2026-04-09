@@ -30,10 +30,8 @@ int main()
     hal::I2cStm i2c{ 1, SCL, SDA };
 
     Pca9685 pwmController(i2c, pwmControllerAddress);
-    Pca9685Channel channel0(pwmController, 1);
-    Pca9685Channel channel1(pwmController, 2);
-    Servo servo1(channel0);
-    Servo servo2(channel1);
+    Servo servo1(pwmController.GetChannel(3));
+    Servo servo2(pwmController.GetChannel(4));
 
     servo1.SetAngle(45);
     servo2.SetAngle(90);

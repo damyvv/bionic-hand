@@ -1,5 +1,6 @@
 #include "Pca9685Channel.hpp"
 #include "infra/util/ReallyAssert.hpp"
+#include "Pca9685.hpp"
 
 Pca9685Channel::Pca9685Channel(Pca9685& pca9685, uint8_t channel)
     : pca9685(pca9685), channel(channel)

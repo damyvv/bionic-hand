@@ -1,7 +1,9 @@
 #pragma once
 
-#include "Pca9685.hpp"
 #include "hal/interfaces/PulseWidthModulation.hpp"
+
+class Pca9685;
+
 class Pca9685Channel : public hal::PulseWidthModulation
 {
 public:
