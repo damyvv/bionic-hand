@@ -10,7 +10,7 @@
       "executable": "${workspaceFolder}/build/stm32f429zi/src/robot_hand/robot_hand.elf",
       "device": "STM32F429ZI",
       "svdFile": "${workspaceFolder}/STM32F429.svd",
-      "preLaunchTask": "Ensure OpenOCD",
+      "preLaunchTask": "Prepare launch",
       "preLaunchCommands": [
         "monitor reset halt",
         "delete breakpoints",

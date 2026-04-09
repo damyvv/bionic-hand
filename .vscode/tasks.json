@@ -51,6 +51,14 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Prepare launch",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build",
+                "Ensure OpenOCD"
+            ],
         }
     ]
 }

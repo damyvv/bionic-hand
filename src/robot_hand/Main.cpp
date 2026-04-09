@@ -3,6 +3,9 @@
 #include "hal_st/stm32fxxx/DefaultClockNucleoF429ZI.hpp"
 #include "services/util/DebugLed.hpp"
 #include "hal_st/stm32fxxx/I2cStm.hpp"
+#include "drivers/Pca9685.hpp"
+#include "drivers/Pca9685Channel.hpp"
+#include "drivers/Servo.hpp"
 
 unsigned int hse_value = 8'000'000;
 
@@ -26,27 +29,15 @@ int main()
     hal::GpioPinStm SCL{ hal::Port::B, 8 };
     hal::I2cStm i2c{ 1, SCL, SDA };
 
-    std::array<uint8_t, 2> data{ 0x00, 0x20 }; // MODE1 = 0x20 to set auto-increment and enable the oscillator (normal mode)
-    i2c.SendData(pwmControllerAddress, data, hal::Action::stop, [&i2c, &pwmControllerAddress](hal::Result result, uint32_t numberOfBytesSent)
-        {
-            setDebugLedsError(result != hal::Result::complete);
-            std::array<uint8_t, 2>data = { 0xFE, 0x79 }; // PRE_SCALE = 0x79 to set the PWM frequency to 50 Hz
-            i2c.SendData(pwmControllerAddress, data, hal::Action::stop, [&i2c, &pwmControllerAddress](hal::Result result, uint32_t numberOfBytesSent)
-                {
-                    setDebugLedsError(result != hal::Result::complete);
-                    
-                    std::array<uint8_t, 1+2*2> data{ 0xFA, // Starting register address: ALL_LED_ON_L
-                        0x00, 0x00, // On time
-                        0xC0, 0x02, // Off time
-                    };
-                    i2c.SendData(pwmControllerAddress, data, hal::Action::stop, [&i2c, &pwmControllerAddress](hal::Result result, uint32_t numberOfBytesSent)
-                        {
-                            setDebugLedsError(result != hal::Result::complete);
-                        });
-                });
-        });
+    Pca9685 pwmController(i2c, pwmControllerAddress);
+    Pca9685Channel channel0(pwmController, 1);
+    Pca9685Channel channel1(pwmController, 2);
+    Servo servo1(channel0);
+    Servo servo2(channel1);
+
+    servo1.SetAngle(45);
+    servo2.SetAngle(90);
 
     eventInfrastructure.Run();
-
-    while(1) {}
+    __builtin_unreachable();
 }
