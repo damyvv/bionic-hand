@@ -1,21 +1,13 @@
 #include "hal_st/instantiations/NucleoUi.hpp"
 #include "hal_st/instantiations/StmEventInfrastructure.hpp"
 #include "hal_st/stm32fxxx/DefaultClockNucleoF429ZI.hpp"
-#include "services/util/DebugLed.hpp"
 #include "hal_st/stm32fxxx/I2cStm.hpp"
-#include "drivers/Pca9685.hpp"
-#include "drivers/Pca9685Channel.hpp"
-#include "drivers/Servo.hpp"
+#include "HandFactory.hpp"
+#include "infra/timer/Timer.hpp"
 
 unsigned int hse_value = 8'000'000;
 
 static main_::Nucleo144Ui ui;
-
-void setDebugLedsError(bool error)
-{
-    ui.ledRed.Set(error);
-    ui.ledGreen.Set(!error);
-}
 
 int main()
 {
@@ -30,11 +22,18 @@ int main()
     hal::I2cStm i2c{ 1, SCL, SDA };
 
     Pca9685 pwmController(i2c, pwmControllerAddress);
-    Servo servo1(pwmController.GetChannel(3));
-    Servo servo2(pwmController.GetChannel(4));
+    Hand hand = HandFactory::CreateHand(pwmController);
 
-    servo1.SetAngle(45);
-    servo2.SetAngle(90);
+    infra::TimerRepeating openCloseTimer(std::chrono::seconds(2), [&hand]()
+    {
+        static bool open = false;
+        if (open)
+            hand.CloseFingers();
+        else
+            hand.OpenFingers();
+
+        open = !open;
+    }, infra::TriggerImmediately{});
 
     eventInfrastructure.Run();
     __builtin_unreachable();
