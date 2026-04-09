@@ -45,6 +45,7 @@ void Pca9685::SetFrequency(uint16_t frequencyHz)
     
     // PRE_SCALE = 0x79 to set the PWM frequency to 50 Hz
     i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ PRE_SCALE_REGISTER, prescale_value }, nullptr });
+    ProcessI2cMessageQueue();
 }
 
 void Pca9685::SetChannelPulseOn(uint8_t channel, uint16_t pulseOn)
