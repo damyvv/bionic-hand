@@ -3,7 +3,7 @@
 #include "hal_st/stm32fxxx/DefaultClockNucleoF429ZI.hpp"
 #include "hal_st/stm32fxxx/I2cStm.hpp"
 #include "HandFactory.hpp"
-#include "infra/timer/Timer.hpp"
+#include "HandDemo.hpp"
 
 unsigned int hse_value = 8'000'000;
 
@@ -24,16 +24,10 @@ int main()
     Pca9685 pwmController(i2c, pwmControllerAddress);
     Hand hand = HandFactory::CreateHand(pwmController);
 
-    infra::TimerRepeating openCloseTimer(std::chrono::seconds(2), [&hand]()
-    {
-        static bool open = false;
-        if (open)
-            hand.CloseFingers();
-        else
-            hand.OpenFingers();
+    // hand.OpenFingers(0);
 
-        open = !open;
-    }, infra::TriggerImmediately{});
+    HandDemo demo(hand);
+    demo.StartDemo();
 
     eventInfrastructure.Run();
     __builtin_unreachable();

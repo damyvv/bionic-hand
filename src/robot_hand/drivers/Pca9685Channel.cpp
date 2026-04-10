@@ -13,7 +13,7 @@ void Pca9685Channel::SetDuty(uint8_t dutyPercent)
         dutyPercent = 100;
     }
 
-    uint32_t periodInMicroseconds = pca9685.GetPeriodInMicroseconds();
+    const uint32_t periodInMicroseconds = pca9685.GetPeriodInMicroseconds();
     pulseOn = (periodInMicroseconds * dutyPercent) / 100;
 
     pca9685.SetChannelPulseOn(channel, pulseOn);
@@ -21,7 +21,7 @@ void Pca9685Channel::SetDuty(uint8_t dutyPercent)
 
 void Pca9685Channel::SetPulse(uint32_t pulseOn, uint32_t period)
 {
-    uint32_t periodInMicroseconds = pca9685.GetPeriodInMicroseconds();
+    const uint32_t periodInMicroseconds = pca9685.GetPeriodInMicroseconds();
     really_assert(period == periodInMicroseconds);
 
     this->pulseOn = pulseOn;
