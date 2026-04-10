@@ -1,0 +1,123 @@
+name: Robot Hand Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/robot-hand-gtests.yml"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "src/robot_hand/**"
+      - "tests/robot_hand/**"
+      - "tests/CMakeLists.txt"
+  pull_request:
+    paths:
+      - ".github/workflows/robot-hand-gtests.yml"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "src/robot_hand/**"
+      - "tests/robot_hand/**"
+      - "tests/CMakeLists.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  robot-hand-gtests:
+    name: Robot Hand GTests + Coverage
+    runs-on: ubuntu-latest
+    container: ghcr.io/philips-software/amp-devcontainer-cpp:6.10.0@sha256:59cd09cf8adae8cee2bca68ceebd8f5328471135353af2c6594402dcdcbe63f1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Configure coverage build
+        run: |
+          cmake -S . -B build/coverage -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_C_FLAGS="--coverage" \
+            -DCMAKE_CXX_FLAGS="--coverage" \
+            -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+            -DCMAKE_SHARED_LINKER_FLAGS="--coverage"
+
+      - name: Build only robot_hand gtests
+        run: cmake --build build/coverage --target runRobotHandTests --parallel
+
+      - name: Run only robot_hand gtests
+        run: |
+          mkdir -p build/coverage/testresults
+          ./build/coverage/tests/robot_hand/runRobotHandTests \
+            --gtest_color=yes \
+            --gtest_output=xml:build/coverage/testresults/robot_hand_gtests.xml
+
+      - name: Generate coverage report for src/robot_hand/*
+        run: |
+          mkdir -p build/coverage/coverage
+
+          gcovr \
+            --root "$GITHUB_WORKSPACE" \
+            --object-directory build/coverage \
+            --filter "$GITHUB_WORKSPACE/src/robot_hand/.*" \
+            --exclude-lines-by-pattern '.*assert\(.*\);|.*really_assert\(.*\);|.*std::abort\(\);' \
+            --exclude-unreachable-branches \
+            --exclude-throw-branches \
+            --xml-pretty \
+            --output build/coverage/coverage/coverage.xml
+
+          gcovr \
+            --root "$GITHUB_WORKSPACE" \
+            --object-directory build/coverage \
+            --filter "$GITHUB_WORKSPACE/src/robot_hand/.*" \
+            --exclude-lines-by-pattern '.*assert\(.*\);|.*really_assert\(.*\);|.*std::abort\(\);' \
+            --exclude-unreachable-branches \
+            --exclude-throw-branches \
+            --html-details \
+            --output build/coverage/coverage/index.html
+
+          gcovr \
+            --root "$GITHUB_WORKSPACE" \
+            --object-directory build/coverage \
+            --filter "$GITHUB_WORKSPACE/src/robot_hand/.*" \
+            --exclude-lines-by-pattern '.*assert\(.*\);|.*really_assert\(.*\);|.*std::abort\(\);' \
+            --exclude-unreachable-branches \
+            --exclude-throw-branches \
+            --print-summary > build/coverage/coverage/summary.txt
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          {
+            echo "## Robot Hand Coverage"
+            echo
+            echo "Tests executed: \`tests/robot_hand/*\`"
+            echo
+            echo "Coverage scope: \`src/robot_hand/*\`"
+            echo
+            echo '```text'
+            cat build/coverage/coverage/summary.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gtest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-hand-gtest-results
+          path: build/coverage/testresults/robot_hand_gtests.xml
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-hand-coverage-report
+          path: build/coverage/coverage/
