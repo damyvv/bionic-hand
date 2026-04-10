@@ -18,6 +18,15 @@ TEST_F(ServoTest, ConstructorDoesNotConfigurePwm)
     Servo servo(pwm);
 }
 
+TEST_F(ServoTest, EmptyServoDoesNotCallSetPulse)
+{
+    Servo servo;
+
+    EXPECT_CALL(pwm, SetPulse(testing::_, testing::_)).Times(0);
+
+    servo.SetAngle(90.0f);
+}
+
 TEST_F(ServoTest, SetsMinimumPulseAtZeroDegrees)
 {
     Servo servo(pwm);
