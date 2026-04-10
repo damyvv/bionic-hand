@@ -25,12 +25,22 @@ package hal {
     I2cMaster <|.. I2cStm
 }
 
+struct Pca9685Message {
+    +data: uint8[]
+    +onSent: Function
+}
+
 class Pca9685 {
+    -i2cMessageQueue: std::queue<Pca9685Message>
     -i2c: I2cMaster
     -address: uint8
     -frequency: uint16
     +Pca9685(i2c: I2cMaster, address: uint8, frequency: uint16)
-    +SetPwmFrequency(frequency: uint16): void
+    +GetChannel(channel: uint8): Pca9685Channel
+    +SetFrequency(frequency: uint16): void
+    +GetFrequency(): uint16
+    +SetChannelPulseOn(channel: uint8, pulseOn: uint16): void
+    -ProcessI2cMessageQueue(): void
 }
 
 class Pca9685Channel {
@@ -49,11 +59,15 @@ class Servo {
     +SetAngle(percent: float): void
 }
 
+interface IServo {
+    +SetAngle(percent: float): void
+}
+
 class Finger {
-    -servo: Servo
+    -servo: IServo
     -beginAngle: float
     -endAngle: float
-    +Finger(servo: Servo, beginAngle: float, endAngle: float)
+    +Finger(servo: IServo, beginAngle: float, endAngle: float)
     +SetPosition(percent: float): void
 }
 
@@ -76,7 +90,9 @@ class HandFactory {
     +CreateHand(i2c: I2cMaster, address: uint8): Hand
 }
 
+Pca9685 ..> Pca9685Message : queues
 Pca9685Channel --o Servo
+Servo .l.|> IServo
 Servo --o Finger
 Finger --* Hand
 HandFactory ..> Hand : creates
