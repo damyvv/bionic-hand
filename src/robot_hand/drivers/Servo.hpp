@@ -1,15 +1,20 @@
 #pragma once
 
+#include "IServo.hpp"
 #include "hal/interfaces/PulseWidthModulation.hpp"
 
-class Servo
+class Servo : public IServo
 {
 public:
-    Servo(hal::PulseWidthModulation& pwm, uint16_t frequency = 50);
-    ~Servo() = default;
+    Servo() = default;
+    explicit Servo(hal::PulseWidthModulation& pwm, uint16_t frequency = 50);
+    Servo(const Servo&) = default;
+    ~Servo() override = default;
 
-    void SetAngle(float angle);
+    Servo& operator=(const Servo&) = default;
+
+    void SetAngle(float angle) override;
 private:
-    hal::PulseWidthModulation& pwm;
-    uint16_t frequency;
+    hal::PulseWidthModulation* pwm = nullptr;
+    uint16_t frequency = 50;
 };

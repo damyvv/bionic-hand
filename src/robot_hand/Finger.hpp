@@ -5,14 +5,14 @@
 class Finger
 {
 public:
-    Finger(Servo servo, float openAngle, float closedAngle);
+    Finger(IServo& servo, float openAngle, float closedAngle);
     ~Finger() = default;
 
     void Open(float percentage);
     void Open();
     void Close();
 private:
-    Servo servo;
+    IServo& servo;
     float openAngle;
     float closedAngle;
 };

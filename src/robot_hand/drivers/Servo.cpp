@@ -6,7 +6,7 @@ static constexpr uint32_t FrequencyToPeriod(uint16_t frequency)
 }
 
 Servo::Servo(hal::PulseWidthModulation& pwm, uint16_t frequency)
-    : pwm(pwm)
+    : pwm(&pwm)
     , frequency(frequency)
 {
 }
@@ -24,5 +24,7 @@ void Servo::SetAngle(float angle)
     }
 
     const uint16_t pulseWidth = MIN_PULSE_WIDTH + static_cast<uint16_t>(((MAX_PULSE_WIDTH - MIN_PULSE_WIDTH) * angle) / 180.0f);
-    pwm.SetPulse(pulseWidth, FrequencyToPeriod(frequency)); // period based on frequency
+    if (pwm != nullptr) {
+        pwm->SetPulse(pulseWidth, FrequencyToPeriod(frequency)); // period based on frequency
+    }
 }

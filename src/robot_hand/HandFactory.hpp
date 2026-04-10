@@ -6,5 +6,5 @@
 class HandFactory
 {
 public:
-    static Hand CreateHand(Pca9685& pwmController);
+    static Hand CreateHand(Pca9685& pwmController, std::array<Servo, 5>& servos);
 };

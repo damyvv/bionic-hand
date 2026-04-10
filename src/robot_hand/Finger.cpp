@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-Finger::Finger(Servo servo, float openAngle, float closedAngle)
+Finger::Finger(IServo& servo, float openAngle, float closedAngle)
     : servo(servo)
     , openAngle(openAngle)
     , closedAngle(closedAngle)

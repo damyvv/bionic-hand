@@ -17,14 +17,13 @@ int main()
     static main_::StmEventInfrastructure eventInfrastructure;
     constexpr hal::I2cAddress pwmControllerAddress{ 0x40 };
 
-    hal::GpioPinStm SDA{ hal::Port::B, 9 };
-    hal::GpioPinStm SCL{ hal::Port::B, 8 };
-    hal::I2cStm i2c{ 1, SCL, SDA };
+    static hal::GpioPinStm SDA{ hal::Port::B, 9 };
+    static hal::GpioPinStm SCL{ hal::Port::B, 8 };
+    static hal::I2cStm i2c{ 1, SCL, SDA };
+    static Pca9685 pwmController(i2c, pwmControllerAddress);
+    static std::array<Servo, 5> servos;
 
-    Pca9685 pwmController(i2c, pwmControllerAddress);
-    Hand hand = HandFactory::CreateHand(pwmController);
-
-    // hand.OpenFingers(0);
+    Hand hand = HandFactory::CreateHand(pwmController, servos);
 
     HandDemo demo(hand);
     demo.StartDemo();
