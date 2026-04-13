@@ -74,16 +74,8 @@ class Finger {
 class Hand {
     -fingers: Finger[]
     +Hand(fingers: Finger[])
-    +SetFingerPosition(finger: FingerType, percent: float): void
+    +SetFingerPosition(finger: uint8, percent: float): void
     +SetAllFingerPosition(percent: float): void
-}
-
-enum FingerType {
-    Thumb,
-    Index,
-    Middle,
-    Ring,
-    Little
 }
 
 class HandFactory {
@@ -96,6 +88,5 @@ Servo .l.|> IServo
 Servo --o Finger
 Finger --* Hand
 HandFactory ..> Hand : creates
-FingerType .. Hand : used in
 
 @enduml
