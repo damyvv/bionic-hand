@@ -7,6 +7,23 @@
 
 namespace
 {
+    Pca9685Message MakeMessage(std::initializer_list<uint8_t> bytes, infra::Function<void(hal::Result)> onSent = nullptr)
+    {
+        really_assert(bytes.size() <= PCA9685_I2C_MESSAGE_MAX_SIZE);
+
+        Pca9685Message message;
+        message.length = static_cast<uint8_t>(bytes.size());
+        message.onSent = onSent;
+        std::copy(bytes.begin(), bytes.end(), message.data.begin());
+
+        return message;
+    }
+
+    infra::ConstByteRange MessageRange(const Pca9685Message& message)
+    {
+        return infra::Head(infra::MakeConstByteRange(message.data), message.length);
+    }
+
     template<std::size_t... I>
     std::array<Pca9685Channel, sizeof...(I)> MakeChannels(
         Pca9685& owner,
@@ -54,7 +71,7 @@ void Pca9685::SetFrequency(uint16_t frequencyHz)
     // Formula to calculate prescale value from PCA9685 datasheet
     const uint8_t prescale_value = static_cast<uint8_t>(std::round(INTERNAL_OSCILLATOR_FREQUENCY / (MAX_PWM_RESOLUTION * frequencyHz)) - 1);
     
-    i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ PRE_SCALE_REGISTER, prescale_value } });
+    i2cMessageQueue.push(MakeMessage({ PRE_SCALE_REGISTER, prescale_value }));
     ProcessI2cMessageQueue();
 }
 
@@ -65,7 +82,7 @@ void Pca9685::SetChannelPulseOn(uint8_t channel, uint16_t pulseOn, infra::Functi
     
     const uint8_t registerAddress = LED0_ON_L_REGISTER + (channel * LEDn_REGISTER_OFFSET);
     // The pulse is started at t=0, so the ON registers are set to 0 and the OFF registers are set to the pulse width (onLow/onHigh).
-    i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ registerAddress, 0, 0, onLow, onHigh }, onSent });
+    i2cMessageQueue.push(MakeMessage({ registerAddress, 0, 0, onLow, onHigh }, onSent));
     ProcessI2cMessageQueue();
 }
 
@@ -82,7 +99,7 @@ void Pca9685::ResetErrorPolicy()
 void Pca9685::PushInitializationSequence()
 {
     // MODE1 = 0x20 to set auto-increment and enable the oscillator (normal mode)
-    i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ MODE1_REGISTER, MODE1_AUTO_INCREMENT_BIT } });
+    i2cMessageQueue.push(MakeMessage({ MODE1_REGISTER, MODE1_AUTO_INCREMENT_BIT }));
 }
 
 void Pca9685::ProcessI2cMessageQueue()
@@ -93,7 +110,7 @@ void Pca9685::ProcessI2cMessageQueue()
     processingI2cQueue = true;
 
     const Pca9685Message& message = i2cMessageQueue.front();
-    i2c.SendData(address, message.data, hal::Action::stop, [this](hal::Result result, uint32_t)
+    i2c.SendData(address, MessageRange(message), hal::Action::stop, [this](hal::Result result, uint32_t)
         {
             auto onSent = i2cMessageQueue.front().onSent;
             i2cMessageQueue.pop();

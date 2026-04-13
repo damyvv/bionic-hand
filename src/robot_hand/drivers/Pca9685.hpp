@@ -10,9 +10,12 @@
 #define PCA9685_CHANNELS 16
 #endif
 
+constexpr size_t PCA9685_I2C_MESSAGE_MAX_SIZE = 5;
+
 struct Pca9685Message
 {
-    std::vector<uint8_t> data;
+    std::array<uint8_t, PCA9685_I2C_MESSAGE_MAX_SIZE> data;
+    uint8_t length;
     infra::Function<void(hal::Result)> onSent;
 };
 
