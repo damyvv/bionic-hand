@@ -2,8 +2,8 @@
 
 #include "hal/interfaces/I2c.hpp"
 #include "Pca9685Channel.hpp"
+#include "infra/util/BoundedDeque.hpp"
 #include <cstdint>
-#include <queue>
 #include <array>
 
 #ifndef PCA9685_CHANNELS
@@ -11,6 +11,7 @@
 #endif
 
 constexpr size_t PCA9685_I2C_MESSAGE_MAX_SIZE = 5;
+constexpr size_t PCA9685_MAX_MESSAGES_IN_QUEUE = 10;
 
 struct Pca9685Message
 {
@@ -53,6 +54,6 @@ private:
     uint32_t periodInUs;
 
     std::array<Pca9685Channel, PCA9685_CHANNELS> channels;
-    std::queue<Pca9685Message> i2cMessageQueue;
+    infra::BoundedDeque<Pca9685Message>::WithMaxSize<PCA9685_MAX_MESSAGES_IN_QUEUE> i2cMessageQueue;
     bool processingI2cQueue = false;
 };
