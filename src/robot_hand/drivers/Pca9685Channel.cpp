@@ -1,9 +1,11 @@
 #include "Pca9685Channel.hpp"
-#include "infra/util/ReallyAssert.hpp"
 #include "Pca9685.hpp"
+#include "Pca9685Defines.hpp"
+
+#include "infra/util/ReallyAssert.hpp"
 
 Pca9685Channel::Pca9685Channel(Pca9685& pca9685, uint8_t channel)
-    : pca9685(pca9685), channel(channel)
+    : pca9685(pca9685), channel(channel), pulseOn(0)
 {
 }
 
@@ -13,8 +15,7 @@ void Pca9685Channel::SetDuty(uint8_t dutyPercent)
         dutyPercent = 100;
     }
 
-    const uint32_t periodInMicroseconds = pca9685.GetPeriodInMicroseconds();
-    pulseOn = (periodInMicroseconds * dutyPercent) / 100;
+    const uint16_t pulseOn = (dutyPercent * MAX_PWM_RESOLUTION) / 100;
 
     pca9685.SetChannelPulseOn(channel, pulseOn);
 }

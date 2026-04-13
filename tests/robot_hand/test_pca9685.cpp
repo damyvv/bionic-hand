@@ -77,23 +77,28 @@ TEST_F(Pca9685Test, SetChannelPulseOnWritesExpectedRegisters)
     pca9685.SetChannelPulseOn(3, 0x01FF);
 }
 
-TEST_F(Pca9685Test, InvokesQueuedMessageCallbackWhenPresent)
+TEST_F(Pca9685Test, ErrorPolicyIsAppliedToI2cMaster)
 {
     testing::InSequence sequence;
     ExpectInitialization();
-    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0xAA, 0x55 }));
+    hal::I2cErrorPolicyMock errorPolicy;
 
     Pca9685 pca9685(i2c, kAddress);
-    bool callbackInvoked = false;
 
-    pca9685.i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ 0xAA, 0x55 }, [&callbackInvoked](hal::Result result)
-        {
-            callbackInvoked = (result == hal::Result::complete);
-        } });
+    EXPECT_CALL(i2c, SetErrorPolicy(testing::Ref(errorPolicy)));
+    pca9685.SetErrorPolicy(errorPolicy);
+}
 
-    pca9685.ProcessI2cMessageQueue();
+TEST_F(Pca9685Test, ResetErrorPolicyIsAppliedToI2cMaster)
+{
+    testing::InSequence sequence;
+    ExpectInitialization();
+    hal::I2cErrorPolicyMock errorPolicy;
 
-    EXPECT_TRUE(callbackInvoked);
+    Pca9685 pca9685(i2c, kAddress);
+
+    EXPECT_CALL(i2c, ResetErrorPolicy());
+    pca9685.ResetErrorPolicy();
 }
 
 TEST_F(Pca9685QueueTest, QueuesAdditionalWritesWhileBusIsBusy)
@@ -127,7 +132,7 @@ TEST_F(Pca9685Test, ChannelSetDutyConvertsDutyCycleToPulseWidth)
 {
     testing::InSequence sequence;
     ExpectInitialization();
-    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x0E, 0x00, 0x00, 0x88, 0x13 }));
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x0E, 0x00, 0x00, 0x00, 0x04 }));
 
     Pca9685 pca9685(i2c, kAddress);
     pca9685.GetChannel(2).SetDuty(25);
@@ -137,7 +142,7 @@ TEST_F(Pca9685Test, ChannelSetDutyClampsValuesAboveOneHundredPercent)
 {
     testing::InSequence sequence;
     ExpectInitialization();
-    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x0A, 0x00, 0x00, 0x20, 0x4E }));
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x0A, 0x00, 0x00, 0x00, 0x10 }));
 
     Pca9685 pca9685(i2c, kAddress);
     pca9685.GetChannel(1).SetDuty(150);
@@ -171,7 +176,7 @@ TEST_F(Pca9685Test, ChannelStopWritesZeroPulseWidth)
 {
     testing::InSequence sequence;
     ExpectInitialization();
-    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x06, 0x00, 0x00, 0xD0, 0x07 }));
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x06, 0x00, 0x00, 0x99, 0x01 }));
     EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x06, 0x00, 0x00, 0x00, 0x00 }));
 
     Pca9685 pca9685(i2c, kAddress);

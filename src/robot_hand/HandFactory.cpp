@@ -1,5 +1,7 @@
 #include "HandFactory.hpp"
+
 #include "drivers/Pca9685.hpp"
+#include "drivers/Servo.hpp"
 #include "Finger.hpp"
 
 Hand HandFactory::CreateHand(Pca9685& pwmController, std::array<Servo, 5>& servos)

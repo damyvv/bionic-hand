@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drivers/Servo.hpp"
+#include "drivers/IServo.hpp"
 
 class Finger
 {

@@ -2,6 +2,7 @@
 
 #include "Finger.hpp"
 #include <array>
+#include <infra/util/ReallyAssert.hpp>
 
 enum class FingerId
 {
@@ -26,10 +27,7 @@ public:
     void OpenFingers();
     void CloseFingers();
 
-    Finger& GetFinger(FingerId fingerId)
-    {
-        return fingers[static_cast<std::size_t>(fingerId)];
-    }
+    Finger& GetFinger(FingerId fingerId);
 private:
     std::array<Finger, 5> fingers;
 };

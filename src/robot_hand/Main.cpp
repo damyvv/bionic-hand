@@ -9,6 +9,18 @@ unsigned int hse_value = 8'000'000;
 
 static main_::Nucleo144Ui ui;
 
+class I2CErrorHandler : public hal::I2cErrorPolicy
+{
+public:
+    I2CErrorHandler() = default;
+    ~I2CErrorHandler() = default;
+
+    void HandleError() { ui.ledRed.Set(true); }
+    virtual void DeviceNotFound() override { HandleError(); }
+    virtual void BusError() override { HandleError(); }
+    virtual void ArbitrationLost() override { HandleError(); }
+};
+
 int main()
 {
     HAL_Init();
@@ -21,6 +33,8 @@ int main()
     static hal::GpioPinStm SCL{ hal::Port::B, 8 };
     static hal::I2cStm i2c{ 1, SCL, SDA };
     static Pca9685 pwmController(i2c, pwmControllerAddress);
+    static I2CErrorHandler errorHandler;
+    pwmController.SetErrorPolicy(errorHandler);
     static std::array<Servo, 5> servos;
 
     Hand hand = HandFactory::CreateHand(pwmController, servos);

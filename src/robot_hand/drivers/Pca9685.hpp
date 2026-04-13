@@ -6,10 +6,13 @@
 #include <queue>
 #include <array>
 
+#ifndef PCA9685_CHANNELS
+#define PCA9685_CHANNELS 16
+#endif
+
 struct Pca9685Message
 {
     std::vector<uint8_t> data;
-    infra::Function<void(hal::Result)> onSent;
 };
 
 class Pca9685
@@ -25,9 +28,12 @@ public:
     
     void SetFrequency(uint16_t frequencyHz);
     inline uint16_t GetFrequency() const { return frequency; }
-    inline uint32_t GetPeriodInMicroseconds() const { return 1000000 / frequency; }
+    uint32_t GetPeriodInMicroseconds() const;
     
     void SetChannelPulseOn(uint8_t channel, uint16_t pulseOn);
+
+    void SetErrorPolicy(hal::I2cErrorPolicy& policy);
+    void ResetErrorPolicy();
 
 private:
     void PushInitializationSequence();
@@ -38,7 +44,7 @@ private:
 
     uint16_t frequency;
 
-    std::array<Pca9685Channel, 16> channels;
+    std::array<Pca9685Channel, PCA9685_CHANNELS> channels;
     std::queue<Pca9685Message> i2cMessageQueue;
     bool processingI2cQueue = false;
 };

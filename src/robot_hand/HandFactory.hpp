@@ -2,6 +2,7 @@
 
 #include "Hand.hpp"
 #include "drivers/Pca9685.hpp"
+#include "drivers/Servo.hpp"
 
 class HandFactory
 {

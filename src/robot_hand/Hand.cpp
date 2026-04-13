@@ -43,3 +43,9 @@ void Hand::CloseFingers()
         finger.Close();
     }
 }
+
+Finger& Hand::GetFinger(FingerId fingerId)
+{
+    really_assert(static_cast<std::size_t>(fingerId) < fingers.size());
+    return fingers[static_cast<std::size_t>(fingerId)];
+}
