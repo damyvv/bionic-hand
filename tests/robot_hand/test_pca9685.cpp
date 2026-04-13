@@ -67,6 +67,29 @@ TEST_F(Pca9685Test, SetFrequencyUpdatesPrescaleAndCachedPeriod)
     EXPECT_EQ(10000u, pca9685.GetPeriodInMicroseconds());
 }
 
+TEST_F(Pca9685Test, PrescaleBoundaryValues)
+{
+    testing::InSequence sequence;
+    ExpectInitialization();
+    
+    Pca9685 pca9685(i2c, kAddress);
+    
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0xFE, 0x01 }));
+    pca9685.SetFrequency(3052);
+    
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0xFE, 0x00 }));
+    pca9685.SetFrequency(6104);
+    
+    EXPECT_EQ(6104u, pca9685.GetFrequency());
+    EXPECT_EQ(164u, pca9685.GetPeriodInMicroseconds());
+
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0xFE, 0xFD }));
+    pca9685.SetFrequency(24);
+    
+    EXPECT_EQ(24u, pca9685.GetFrequency());
+    EXPECT_EQ(41667u, pca9685.GetPeriodInMicroseconds());
+}
+
 TEST_F(Pca9685Test, SetChannelPulseOnWritesExpectedRegisters)
 {
     testing::InSequence sequence;
@@ -75,6 +98,25 @@ TEST_F(Pca9685Test, SetChannelPulseOnWritesExpectedRegisters)
 
     Pca9685 pca9685(i2c, kAddress);
     pca9685.SetChannelPulseOn(3, 0x01FF);
+}
+
+TEST_F(Pca9685Test, InvokesQueuedMessageCallbackWhenPresent)
+{
+    testing::InSequence sequence;
+    ExpectInitialization();
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x12, 0x00, 0x00, 0xFF, 0x01 }));
+
+    Pca9685 pca9685(i2c, kAddress);
+    bool callbackInvoked = false;
+
+    pca9685.SetChannelPulseOn(3, 0x01FF, [&callbackInvoked](hal::Result result)
+        {
+            callbackInvoked = (result == hal::Result::complete);
+        });
+
+    pca9685.ProcessI2cMessageQueue();
+
+    EXPECT_TRUE(callbackInvoked);
 }
 
 TEST_F(Pca9685Test, ErrorPolicyIsAppliedToI2cMaster)

@@ -3,6 +3,7 @@
 
 #include "infra/util/ReallyAssert.hpp"
 #include <cmath>
+#include "DriverUtils.hpp"
 
 namespace
 {
@@ -15,14 +16,27 @@ namespace
     }
 }
 
-Pca9685::Pca9685(hal::I2cMaster& i2c, hal::I2cAddress address, uint16_t frequency)
+Pca9685::Pca9685(hal::I2cMaster& i2c, hal::I2cAddress address, hal::I2cErrorPolicy* errorPolicy, uint16_t frequency)
     : i2c(i2c)
     , address(address)
     , channels(MakeChannels(*this, std::make_index_sequence<PCA9685_CHANNELS>{}))
 {
+    if (errorPolicy != nullptr) {
+        SetErrorPolicy(*errorPolicy);
+    }
     PushInitializationSequence();
     SetFrequency(frequency);
     ProcessI2cMessageQueue();
+}
+
+Pca9685::Pca9685(hal::I2cMaster& i2c, hal::I2cAddress address, uint16_t frequency)
+    : Pca9685(i2c, address, nullptr, frequency)
+{
+}
+
+Pca9685::Pca9685(hal::I2cMaster& i2c, hal::I2cAddress address, hal::I2cErrorPolicy& errorPolicy, uint16_t frequency)
+    : Pca9685(i2c, address, &errorPolicy, frequency)
+{
 }
 
 Pca9685Channel& Pca9685::GetChannel(uint8_t channel)
@@ -35,26 +49,23 @@ void Pca9685::SetFrequency(uint16_t frequencyHz)
 {
     really_assert(frequencyHz > 0);
     this->frequency = frequencyHz;
+    periodInUs = DriverUtils::HertzToMicroseconds(frequencyHz);
 
+    // Formula to calculate prescale value from PCA9685 datasheet
     const uint8_t prescale_value = static_cast<uint8_t>(std::round(INTERNAL_OSCILLATOR_FREQUENCY / (MAX_PWM_RESOLUTION * frequencyHz)) - 1);
     
     i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ PRE_SCALE_REGISTER, prescale_value } });
     ProcessI2cMessageQueue();
 }
 
-uint32_t Pca9685::GetPeriodInMicroseconds() const {
-    really_assert(frequency > 0);
-    return 1'000'000 / frequency;
-}
-
-void Pca9685::SetChannelPulseOn(uint8_t channel, uint16_t pulseOn)
+void Pca9685::SetChannelPulseOn(uint8_t channel, uint16_t pulseOn, infra::Function<void(hal::Result)> onSent)
 {
     const uint8_t onLow = pulseOn & 0xFF;
     const uint8_t onHigh = (pulseOn >> 8) & 0xFF;
     
     const uint8_t registerAddress = LED0_ON_L_REGISTER + (channel * LEDn_REGISTER_OFFSET);
     // The pulse is started at t=0, so the ON registers are set to 0 and the OFF registers are set to the pulse width (onLow/onHigh).
-    i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ registerAddress, 0, 0, onLow, onHigh } });
+    i2cMessageQueue.push(Pca9685Message{ std::vector<uint8_t>{ registerAddress, 0, 0, onLow, onHigh }, onSent });
     ProcessI2cMessageQueue();
 }
 
@@ -82,10 +93,16 @@ void Pca9685::ProcessI2cMessageQueue()
     processingI2cQueue = true;
 
     const Pca9685Message& message = i2cMessageQueue.front();
-    i2c.SendData(address, message.data, hal::Action::stop, [this](hal::Result result, uint32_t numberOfBytesSent)
+    i2c.SendData(address, message.data, hal::Action::stop, [this](hal::Result result, uint32_t)
         {
+            auto onSent = i2cMessageQueue.front().onSent;
             i2cMessageQueue.pop();
             processingI2cQueue = false;
             ProcessI2cMessageQueue();
+
+            // Process the callback after starting the next I2C transaction.
+            if (onSent) {
+                onSent(result);
+            }
         });
 }

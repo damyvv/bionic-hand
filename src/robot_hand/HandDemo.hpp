@@ -8,14 +8,14 @@ enum class HandDemoState;
 class HandDemo
 {
 public:
-    HandDemo(Hand& hand);
+    HandDemo(Hand<FINGER_COUNT>& hand);
     ~HandDemo() = default;
     void StartDemo();
 private:
     void RunFSM();
-    void SetupTimer(std::chrono::milliseconds period);
+    void SetupTimer(infra::Duration period);
 private:
-    Hand& hand;
+    Hand<FINGER_COUNT>& hand;
     infra::TimerRepeating timer;
     HandDemoState state;
     int counter;

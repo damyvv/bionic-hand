@@ -14,7 +14,10 @@ public:
     Servo& operator=(const Servo&) = default;
 
     void SetAngle(float angle) override;
+
+    void SetFrequency(uint16_t frequency);
 private:
     hal::PulseWidthModulation* pwm = nullptr;
     uint16_t frequency = 50;
+    uint32_t periodInUs;
 };

@@ -1,15 +1,19 @@
 #include "Servo.hpp"
 #include <algorithm>
 
-static constexpr uint32_t FrequencyToPeriod(uint16_t frequency)
-{
-    return 1'000'000 / frequency; // period in microseconds
-}
+#include "DriverUtils.hpp"
 
 Servo::Servo(hal::PulseWidthModulation& pwm, uint16_t frequency)
     : pwm(&pwm)
-    , frequency(frequency)
 {
+    SetFrequency(frequency);
+}
+
+void Servo::SetFrequency(uint16_t frequency)
+{
+    really_assert(frequency > 0);
+    this->frequency = frequency;
+    periodInUs = DriverUtils::HertzToMicroseconds(frequency);
 }
 
 void Servo::SetAngle(float angle)
@@ -21,8 +25,8 @@ void Servo::SetAngle(float angle)
 
     angle = std::clamp(angle, MIN_ANGLE, MAX_ANGLE);
 
-    const uint16_t pulseWidth = MIN_PULSE_WIDTH + static_cast<uint16_t>(((MAX_PULSE_WIDTH - MIN_PULSE_WIDTH) * angle) / (MAX_ANGLE - MIN_ANGLE));
+    const uint16_t pulseWidth = DriverUtils::lerp(MIN_PULSE_WIDTH, MAX_PULSE_WIDTH, (angle - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE));
     if (pwm != nullptr) {
-        pwm->SetPulse(pulseWidth, FrequencyToPeriod(frequency)); // period based on frequency
+        pwm->SetPulse(pulseWidth, periodInUs); // period based on frequency
     }
 }

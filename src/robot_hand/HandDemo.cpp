@@ -1,4 +1,9 @@
 #include "HandDemo.hpp"
+#include "infra/timer/Timer.hpp"
+
+constexpr uint32_t slowMoveResolution = 500; // number of steps to go from fully closed to fully open in slow open/close states
+constexpr infra::Duration slowTimerPeriod = std::chrono::milliseconds(350);
+constexpr infra::Duration fastTimerPeriod = std::chrono::milliseconds(5);
 
 enum class HandDemoState
 {
@@ -11,7 +16,7 @@ enum class HandDemoState
     Idle
 };
 
-HandDemo::HandDemo(Hand& hand)
+HandDemo::HandDemo(Hand<FINGER_COUNT>& hand)
     : hand(hand)
     , timer()
     , state(HandDemoState::Idle)
@@ -22,10 +27,10 @@ void HandDemo::StartDemo()
 {
     counter = 0;
     state = HandDemoState::OpeningFingers;
-    SetupTimer(std::chrono::milliseconds(350));
+    SetupTimer(slowTimerPeriod);
 }
 
-void HandDemo::SetupTimer(std::chrono::milliseconds period)
+void HandDemo::SetupTimer(infra::Duration period)
 {
     timer.Cancel();
     timer.Start(period, [this]() { RunFSM(); });
@@ -33,6 +38,7 @@ void HandDemo::SetupTimer(std::chrono::milliseconds period)
 
 void HandDemo::RunFSM()
 {
+
     switch (state)
     {
     case HandDemoState::OpeningFingers:
@@ -44,39 +50,40 @@ void HandDemo::RunFSM()
         state = HandDemoState::CountFingers;
         break;
     case HandDemoState::CountFingers:
-        hand.OpenFinger(static_cast<FingerId>((counter + 1) % 5));
-        counter = counter + 1;
-        if (counter == 5) {
+        hand.OpenFinger((counter + 1) % FINGER_COUNT);
+        ++counter;
+        if (counter == FINGER_COUNT) {
             state = HandDemoState::CountBinary;
             counter = 0;
         }
         break;
     case HandDemoState::CountBinary:
-        for (int i = 0; i < 5; i++)
-        {
-            if ((counter >> i) & 0x01)
-                hand.OpenFinger(static_cast<FingerId>(i));
-            else
-                hand.CloseFinger(static_cast<FingerId>(i));
-        }
-        counter = counter + 1;
-        if (counter == 32) {
+        if (counter == (1 << FINGER_COUNT)) {
             counter = 0;
             state = HandDemoState::SlowOpen;
-            SetupTimer(std::chrono::milliseconds(5));
+            SetupTimer(fastTimerPeriod);
         }
+        
+        for (int i = 0; i < FINGER_COUNT; i++)
+        {
+            if ((counter >> i) & 0x01)
+                hand.OpenFinger(i);
+            else
+                hand.CloseFinger(i);
+        }
+        ++counter;
         break;
     case HandDemoState::SlowOpen:
-        hand.OpenFingers(counter/500.f);
-        counter = counter + 1;
-        if (counter >= 501) {
-            counter = 500;
+        hand.OpenFingers(counter/static_cast<float>(slowMoveResolution));
+        ++counter;
+        if (counter >= slowMoveResolution) {
+            counter = slowMoveResolution - 1;
             state = HandDemoState::SlowClose;
         }
         break;
     case HandDemoState::SlowClose:
-        hand.OpenFingers(counter/500.f);
-        counter = counter - 1;
+        hand.OpenFingers(counter/static_cast<float>(slowMoveResolution));
+        --counter;
         if (counter <= -1) {
             counter = 0;
             state = HandDemoState::Idle;

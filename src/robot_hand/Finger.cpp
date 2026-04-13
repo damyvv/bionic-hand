@@ -1,6 +1,7 @@
 #include "Finger.hpp"
 
 #include <algorithm>
+#include "drivers/DriverUtils.hpp"
 
 Finger::Finger(IServo& servo, float openAngle, float closedAngle)
     : servo(servo)
@@ -12,7 +13,7 @@ Finger::Finger(IServo& servo, float openAngle, float closedAngle)
 void Finger::Open(float percentage)
 {
     percentage = std::clamp(percentage, 0.0f, 1.0f);
-    const float angle = closedAngle + (openAngle - closedAngle) * percentage;
+    const float angle = DriverUtils::lerp(closedAngle, openAngle, percentage);
     servo.SetAngle(angle);
 }
 

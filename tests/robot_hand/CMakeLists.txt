@@ -3,7 +3,6 @@ file(GLOB TEST_SOURCES "*.cpp")
 add_executable(runRobotHandTests
     ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/robot_hand/Finger.cpp
-    ${CMAKE_SOURCE_DIR}/src/robot_hand/Hand.cpp
     ${CMAKE_SOURCE_DIR}/src/robot_hand/drivers/Servo.cpp
     ${CMAKE_SOURCE_DIR}/src/robot_hand/drivers/Pca9685.cpp
     ${CMAKE_SOURCE_DIR}/src/robot_hand/drivers/Pca9685Channel.cpp

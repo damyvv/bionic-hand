@@ -11,12 +11,15 @@ Pca9685Channel::Pca9685Channel(Pca9685& pca9685, uint8_t channel)
 
 void Pca9685Channel::SetDuty(uint8_t dutyPercent)
 {
-    if (dutyPercent > 100) {
-        dutyPercent = 100;
+    constexpr uint8_t MAX_DUTY_CYCLE = 100;
+
+    if (dutyPercent > MAX_DUTY_CYCLE) {
+        dutyPercent = MAX_DUTY_CYCLE;
     }
 
-    const uint16_t pulseOn = (dutyPercent * MAX_PWM_RESOLUTION) / 100;
-
+    const uint16_t pulseOn = (dutyPercent * MAX_PWM_RESOLUTION) / MAX_DUTY_CYCLE;
+    
+    this->pulseOn = pulseOn;
     pca9685.SetChannelPulseOn(channel, pulseOn);
 }
 

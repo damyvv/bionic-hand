@@ -35,48 +35,48 @@ TEST_F(HandTest, ConstructorDoesNotActuateAnyFinger)
     for (auto& servo : servos)
         EXPECT_CALL(servo, SetAngle(testing::_)).Times(0);
 
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
 }
 
 TEST_F(HandTest, GetFingerReturnsRequestedFinger)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
 
     EXPECT_CALL(servos[2], SetAngle(30.0f));
 
-    hand.GetFinger(FingerId::Middle).Open();
+    hand.GetFinger(2).Open();
 }
 
 TEST_F(HandTest, OpenFingerWithPercentageTargetsRequestedFinger)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
 
     EXPECT_CALL(servos[0], SetAngle(55.0f));
 
-    hand.OpenFinger(FingerId::Thumb, 0.5f);
+    hand.OpenFinger(0, 0.5f);
 }
 
 TEST_F(HandTest, OpenFingerWithoutPercentageUsesFingerOpenAngle)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
 
     EXPECT_CALL(servos[1], SetAngle(20.0f));
 
-    hand.OpenFinger(FingerId::Index);
+    hand.OpenFinger(1);
 }
 
 TEST_F(HandTest, CloseFingerTargetsRequestedFinger)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
 
     EXPECT_CALL(servos[4], SetAngle(140.0f));
 
-    hand.CloseFinger(FingerId::Little);
+    hand.CloseFinger(4);
 }
 
 TEST_F(HandTest, OpenFingersWithPercentageOpensAllFingers)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
     testing::InSequence sequence;
 
     EXPECT_CALL(servos[0], SetAngle(55.0f));
@@ -90,7 +90,7 @@ TEST_F(HandTest, OpenFingersWithPercentageOpensAllFingers)
 
 TEST_F(HandTest, OpenFingersWithoutPercentageFullyOpensAllFingers)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
     testing::InSequence sequence;
 
     EXPECT_CALL(servos[0], SetAngle(10.0f));
@@ -104,7 +104,7 @@ TEST_F(HandTest, OpenFingersWithoutPercentageFullyOpensAllFingers)
 
 TEST_F(HandTest, CloseFingersClosesAllFingers)
 {
-    Hand hand(MakeFingers());
+    Hand<5> hand(MakeFingers());
     testing::InSequence sequence;
 
     EXPECT_CALL(servos[0], SetAngle(100.0f));

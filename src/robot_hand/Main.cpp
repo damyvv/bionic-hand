@@ -32,12 +32,10 @@ int main()
     static hal::GpioPinStm SDA{ hal::Port::B, 9 };
     static hal::GpioPinStm SCL{ hal::Port::B, 8 };
     static hal::I2cStm i2c{ 1, SCL, SDA };
-    static Pca9685 pwmController(i2c, pwmControllerAddress);
     static I2CErrorHandler errorHandler;
-    pwmController.SetErrorPolicy(errorHandler);
-    static std::array<Servo, 5> servos;
-
-    Hand hand = HandFactory::CreateHand(pwmController, servos);
+    static Pca9685 pwmController(i2c, pwmControllerAddress, errorHandler);
+    static std::array<Servo, FINGER_COUNT> servos;
+    Hand<FINGER_COUNT> hand = HandFactory::CreateHand(pwmController, servos);
 
     HandDemo demo(hand);
     demo.StartDemo();
