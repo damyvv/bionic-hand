@@ -43,6 +43,19 @@ TEST_F(Pca9685Test, ConstructorInitializesDeviceAndSetsDefaultFrequency)
     EXPECT_EQ(20000u, pca9685.GetPeriodInMicroseconds());
 }
 
+TEST_F(Pca9685Test, ConstructorSetsErrorPolicyAndInitializesDevice)
+{
+    testing::InSequence sequence;
+    hal::I2cErrorPolicyMock errorPolicy;
+    EXPECT_CALL(i2c, SetErrorPolicy(testing::Ref(errorPolicy)));
+    ExpectInitialization();
+
+    Pca9685 pca9685(i2c, kAddress, errorPolicy);
+
+    EXPECT_EQ(50, pca9685.GetFrequency());
+    EXPECT_EQ(20000u, pca9685.GetPeriodInMicroseconds());
+}
+
 TEST_F(Pca9685Test, ConstructorInitializesDeviceAndSetsFrequency)
 {
     testing::InSequence sequence;
