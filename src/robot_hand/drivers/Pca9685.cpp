@@ -64,6 +64,12 @@ Pca9685Channel& Pca9685::GetChannel(uint8_t channel)
 
 void Pca9685::SetFrequency(uint16_t frequencyHz)
 {
+    if (i2cMessageQueue.full()) {
+        // If the queue is full, we can't send the command to update the prescale value, so we shouldn't update the cached frequency and period until we can ensure the command is sent.
+        assert(false);
+        return;
+    }
+
     really_assert(frequencyHz > 0);
     this->frequency = frequencyHz;
     periodInUs = DriverUtils::HertzToMicroseconds(frequencyHz);
@@ -77,6 +83,12 @@ void Pca9685::SetFrequency(uint16_t frequencyHz)
 
 void Pca9685::SetChannelPulseOn(uint8_t channel, uint16_t pulseOn, infra::Function<void(hal::Result)> onSent)
 {
+    if (i2cMessageQueue.full()) {
+        // If the queue is full, we can't send the command to update the channel, so we shouldn't update the channel until we can ensure the command is sent.
+        assert(false);
+        return;
+    }
+
     const uint8_t onLow = pulseOn & 0xFF;
     const uint8_t onHigh = (pulseOn >> 8) & 0xFF;
     
@@ -98,6 +110,8 @@ void Pca9685::ResetErrorPolicy()
 
 void Pca9685::PushInitializationSequence()
 {
+    really_assert(!i2cMessageQueue.full());
+
     // MODE1 = 0x20 to set auto-increment and enable the oscillator (normal mode)
     i2cMessageQueue.push_back(MakeMessage({ MODE1_REGISTER, MODE1_AUTO_INCREMENT_BIT }));
 }

@@ -80,6 +80,34 @@ TEST_F(Pca9685Test, SetFrequencyUpdatesPrescaleAndCachedPeriod)
     EXPECT_EQ(10000u, pca9685.GetPeriodInMicroseconds());
 }
 
+TEST_F(Pca9685QueueTest, SetFrequencyI2CQueueIsFull)
+{
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x00, 0x20 }));
+
+    Pca9685 pca9685(i2c, kAddress);
+
+    while (!pca9685.i2cMessageQueue.full()) {
+        pca9685.SetChannelPulseOn(0, 0x01FF);
+    }
+
+    EXPECT_TRUE(pca9685.i2cMessageQueue.full());
+    EXPECT_DEATH(pca9685.SetFrequency(100), "");
+}
+
+TEST_F(Pca9685QueueTest, SetChannelPulseOnQueueIsFull)
+{
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x00, 0x20 }));
+
+    Pca9685 pca9685(i2c, kAddress);
+
+    while (!pca9685.i2cMessageQueue.full()) {
+        pca9685.SetChannelPulseOn(0, 0x01FF);
+    }
+
+    EXPECT_TRUE(pca9685.i2cMessageQueue.full());
+    EXPECT_DEATH(pca9685.SetChannelPulseOn(1, 0x01FF), "");
+}
+
 TEST_F(Pca9685Test, PrescaleBoundaryValues)
 {
     testing::InSequence sequence;
