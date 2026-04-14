@@ -3,6 +3,8 @@
 #include "hal/interfaces/I2c.hpp"
 #include "Pca9685Channel.hpp"
 #include "infra/util/BoundedDeque.hpp"
+#include "infra/util/BoundedVector.hpp"
+#include <initializer_list>
 #include <cstdint>
 #include <array>
 
@@ -15,9 +17,15 @@ constexpr size_t PCA9685_MAX_MESSAGES_IN_QUEUE = 10;
 
 struct Pca9685Message
 {
-    std::array<uint8_t, PCA9685_I2C_MESSAGE_MAX_SIZE> data;
-    uint8_t length;
+    infra::BoundedVector<uint8_t>::WithMaxSize<PCA9685_I2C_MESSAGE_MAX_SIZE> data;
     infra::Function<void(hal::Result)> onSent;
+
+    Pca9685Message(std::initializer_list<uint8_t> bytes, infra::Function<void(hal::Result)> onSent = nullptr)
+        : data(bytes)
+        , onSent(onSent)
+    {
+        really_assert(bytes.size() <= PCA9685_I2C_MESSAGE_MAX_SIZE);
+    }
 };
 
 class Pca9685
