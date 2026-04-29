@@ -3,7 +3,7 @@
 #include "hal_st/stm32fxxx/DefaultClockNucleoF429ZI.hpp"
 #include "hal_st/stm32fxxx/I2cStm.hpp"
 #include "HandFactory.hpp"
-#include "HandDemo.hpp"
+#include "demo/HandDemo.hpp"
 
 unsigned int hse_value = 8'000'000;
 
