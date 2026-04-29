@@ -4,7 +4,6 @@
 
 HandDemo::HandDemo(Hand<FINGER_COUNT>& hand)
     : hand(hand)
-    , timer()
     , currentState(&IdleState::GetInstance())
 {
 }
@@ -16,13 +15,20 @@ void HandDemo::StartDemo()
 
 void HandDemo::SetupTimer(infra::Duration period)
 {
-    timer.Cancel();
-    timer.Start(period, [this]() { RunFSM(); });
+    if (!timer.has_value()) {
+        // Lazily construct the timer when needed.
+        timer.emplace();
+    }
+
+    timer->Cancel();
+    timer->Start(period, [this]() { RunFSM(); });
 }
 
 void HandDemo::CancelTimer()
 {
-    timer.Cancel();
+    if (timer.has_value()) {
+        timer->Cancel();
+    }
 }
 
 void HandDemo::RunFSM()

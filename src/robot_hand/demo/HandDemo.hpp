@@ -2,6 +2,7 @@
 
 #include "../Hand.hpp"
 #include "infra/timer/Timer.hpp"
+#include <optional>
 
 class DemoState;
 
@@ -21,6 +22,6 @@ private:
     
 private:
     Hand<FINGER_COUNT>& hand;
-    infra::TimerRepeating timer;
+    std::optional<infra::TimerRepeating> timer;
     DemoState* currentState;
 };
