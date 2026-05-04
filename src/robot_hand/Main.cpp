@@ -5,7 +5,8 @@
 #include <hal_st/stm32fxxx/UartStm.hpp>
 #include "HandFactory.hpp"
 #include "demo/HandDemo.hpp"
-#include "demo/CommandLine.hpp"
+#include "cli/SerialLineSource.hpp"
+#include "cli/SerialOutput.hpp"
 
 unsigned int hse_value = 8'000'000;
 
@@ -34,7 +35,21 @@ int main()
     static hal::GpioPinStm usart3tx{ hal::Port::D, 8 };
     static hal::GpioPinStm usart3rx{ hal::Port::D, 9 };
     static hal::UartStm uart{ 3, usart3tx, usart3rx };
-    static CommandLine commandLine(uart);
+
+    SerialOutput<128> serialOutput(uart);
+    SerialLineSource<128> serialLineSource(uart);
+
+    serialLineSource.ReceiveLine([&](std::string_view line)
+        {
+            serialOutput.Write("Received line: ");
+            serialOutput.Write(line);
+            serialOutput.Write("\n");
+        });
+
+    serialLineSource.ReceiveByte([&](uint8_t byte)
+        {
+            serialOutput.Write(byte);
+        });
 
     static hal::GpioPinStm SDA{ hal::Port::B, 9 };
     static hal::GpioPinStm SCL{ hal::Port::B, 8 };
