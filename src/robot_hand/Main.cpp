@@ -36,10 +36,8 @@ int main()
     static hal::GpioPinStm usart3tx{ hal::Port::D, 8 };
     static hal::GpioPinStm usart3rx{ hal::Port::D, 9 };
     static hal::UartStm uart{ 3, usart3tx, usart3rx };
-
-    SerialOutput<1024> serialOutput(uart);
-    SerialLineSource<128> serialLineSource(uart);
-    CommandLineApp commandLineApp(serialLineSource, serialOutput);
+    static SerialOutput<1024> serialOutput(uart);
+    static SerialLineSource<128> serialLineSource(uart);
 
     static hal::GpioPinStm SDA{ hal::Port::B, 9 };
     static hal::GpioPinStm SCL{ hal::Port::B, 8 };
@@ -50,6 +48,9 @@ int main()
     Hand<FINGER_COUNT> hand = HandFactory::CreateHand(pwmController, servos);
 
     HandDemo demo(hand);
+
+    CommandLineApp commandLineApp(serialLineSource, serialOutput, hand, demo);
+    
     demo.StartDemo();
 
     eventInfrastructure.Run();

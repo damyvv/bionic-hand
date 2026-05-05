@@ -13,6 +13,11 @@ void HandDemo::StartDemo()
     TransitionToState(&OpeningFingersState::GetInstance());
 }
 
+void HandDemo::StopDemo()
+{
+    TransitionToState(&IdleState::GetInstance());
+}
+
 void HandDemo::SetupTimer(infra::Duration period)
 {
     if (!timer.has_value()) {

@@ -50,33 +50,31 @@ private:
 
     void HandleLineReceived()
     {
-        if (!inputBuffer.empty()) {
-            infra::EventDispatcher::Instance().Schedule([this]() {
-                std::string_view line;
-                infra::BoundedString::iterator commandEnd = 0;
-                {
-                    CriticalSectionGuard guard;
-                    auto commandBegin = inputBuffer.begin();
-                    while (commandBegin != inputBuffer.end() && (*commandBegin == '\n' || *commandBegin == '\r')) {
-                        ++commandBegin;
-                    }
-                    commandEnd = std::find_if(commandBegin, inputBuffer.end(), [](char c) { return c == '\n' || c == '\r'; });
-                    line = std::string_view(commandBegin, std::distance(commandBegin, commandEnd));
-                }
-                if (actionOnLineReceived) {
-                    actionOnLineReceived(line);
-                }
-                {
-                    CriticalSectionGuard guard;
-                    characterHandlerPosition -= std::distance(inputBuffer.begin(), commandEnd);
-                    characterHandlerPosition = std::clamp(characterHandlerPosition, 0u, inputBuffer.size());
-                    inputBuffer.erase(inputBuffer.begin(), commandEnd);
-                }
-            });
-        } else {
-            inputBuffer.clear();
-            characterHandlerPosition = 0;
+        if (inputBuffer.empty()) {
+            return;
         }
+        infra::EventDispatcher::Instance().Schedule([this]() {
+            std::string_view line;
+            infra::BoundedString::iterator commandEnd = 0;
+            {
+                CriticalSectionGuard guard;
+                auto commandBegin = inputBuffer.begin();
+                while (commandBegin != inputBuffer.end() && (*commandBegin == '\n' || *commandBegin == '\r')) {
+                    ++commandBegin;
+                }
+                commandEnd = std::find_if(commandBegin, inputBuffer.end(), [](char c) { return c == '\n' || c == '\r'; });
+                line = std::string_view(commandBegin, std::distance(commandBegin, commandEnd));
+            }
+            if (actionOnLineReceived) {
+                actionOnLineReceived(line);
+            }
+            {
+                CriticalSectionGuard guard;
+                characterHandlerPosition -= std::distance(inputBuffer.begin(), commandEnd);
+                characterHandlerPosition = std::clamp(characterHandlerPosition, 0u, inputBuffer.size());
+                inputBuffer.erase(inputBuffer.begin(), commandEnd);
+            }
+        });
     }
 
     void ProcessCharacter(char c)

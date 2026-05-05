@@ -3,43 +3,74 @@
 #include "Finger.hpp"
 #include <array>
 #include <infra/util/ReallyAssert.hpp>
+#include <optional>
+#include <functional>
+
+class IHand
+{
+public:
+    virtual ~IHand() = default;
+    virtual bool OpenFinger(uint8_t fingerId, float percentage) = 0;
+    virtual bool OpenFinger(uint8_t fingerId) = 0;
+    virtual bool CloseFinger(uint8_t fingerId) = 0;
+    virtual void OpenFingers(float percentage) = 0;
+    virtual void OpenFingers() = 0;
+    virtual void CloseFingers() = 0;
+    virtual std::size_t GetFingerCount() const = 0;
+    virtual std::optional<std::reference_wrapper<Finger>> GetFinger(uint8_t fingerId) = 0;
+};
 
 template<uint8_t NFingers = 5>
-class Hand
+class Hand : public IHand
 {
 public:
     explicit Hand(std::array<Finger, NFingers>&& fingers)
         : fingers(std::move(fingers)) {}
     ~Hand() = default;
 
-    void OpenFinger(uint8_t fingerId, float percentage)
+    bool OpenFinger(uint8_t fingerId, float percentage) override
     {
-        GetFinger(fingerId).Open(percentage);
+        if (auto finger = GetFinger(fingerId))
+        {
+            finger->get().Open(percentage);
+            return true;
+        }
+        return false;
     }
-    void OpenFinger(uint8_t fingerId)
+    bool OpenFinger(uint8_t fingerId) override
     {
-        GetFinger(fingerId).Open();
+        if (auto finger = GetFinger(fingerId))
+        {
+            finger->get().Open();
+            return true;
+        }
+        return false;
     }
-    void CloseFinger(uint8_t fingerId)
+    bool CloseFinger(uint8_t fingerId) override
     {
-        GetFinger(fingerId).Close();
+        if (auto finger = GetFinger(fingerId))
+        {
+            finger->get().Close();
+            return true;
+        }
+        return false;
     }
 
-    void OpenFingers(float percentage)
+    void OpenFingers(float percentage) override
     {
         for (auto& finger : fingers)
         {
             finger.Open(percentage);
         }
     }
-    void OpenFingers()
+    void OpenFingers() override
     {
         for (auto& finger : fingers)
         {
             finger.Open();
         }
     }
-    void CloseFingers()
+    void CloseFingers() override
     {
         for (auto& finger : fingers)
         {
@@ -47,10 +78,18 @@ public:
         }
     }
 
-    Finger& GetFinger(uint8_t fingerId)
+    std::size_t GetFingerCount() const override
     {
-        really_assert(fingerId < NFingers);
-        return fingers[fingerId];
+        return NFingers;
+    }
+
+    std::optional<std::reference_wrapper<Finger>> GetFinger(uint8_t fingerId) override
+    {
+        if (fingerId < NFingers)
+        {
+            return fingers[fingerId];
+        }
+        return std::nullopt;
     }
 private:
     std::array<Finger, NFingers> fingers;

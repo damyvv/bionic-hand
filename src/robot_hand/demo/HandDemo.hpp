@@ -12,6 +12,7 @@ public:
     HandDemo(Hand<FINGER_COUNT>& hand);
     ~HandDemo() = default;
     void StartDemo();
+    void StopDemo();
     
     Hand<FINGER_COUNT>& GetHand() { return hand; }
     void SetupTimer(infra::Duration period);

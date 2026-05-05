@@ -1,24 +1,31 @@
 #pragma once
 
 #include "CommandLine.hpp"
-#include "Command.hpp"
+#include "Commands.hpp"
+#include "../demo/HandDemo.hpp"
+#include "../Hand.hpp"
 
 class CommandLineApp
 {
-    static constexpr std::size_t CommandCount = 2;
+    static constexpr std::size_t CommandCount = 4;
     static constexpr std::size_t MaxArguments = 5;
 
     using CliType = CommandLine<CommandCount, MaxArguments>;
 
 public:
-    explicit CommandLineApp(ISerialLineSource& lineSource, ISerialOutput& serialOutput)
+    explicit CommandLineApp(ISerialLineSource& lineSource, ISerialOutput& serialOutput, IHand& hand, HandDemo& handDemo)
         : cli(lineSource, serialOutput)
         , helpCommand(cli)
+        , openHandCommand(hand)
+        , closeHandCommand(hand)
+        , demoCommand(handDemo)
     {
         cli.RegisterCommand(helpCommand);
-        cli.RegisterCommand(echoCommand);
+        cli.RegisterCommand(openHandCommand);
+        cli.RegisterCommand(closeHandCommand);
+        cli.RegisterCommand(demoCommand);
 
-        // cli.Run();
+        cli.Run();
 
         EchoInput(serialOutput, lineSource);
     }
@@ -41,5 +48,7 @@ private:
     CliType cli;
 
     HelpCommand helpCommand;
-    EchoCommand echoCommand;
+    OpenHandCommand openHandCommand;
+    CloseHandCommand closeHandCommand;
+    DemoCommand demoCommand;
 };
