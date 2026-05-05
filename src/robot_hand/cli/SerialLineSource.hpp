@@ -3,6 +3,7 @@
 #include <hal/interfaces/SerialCommunication.hpp>
 #include "infra/util/Function.hpp"
 #include <string_view>
+#include "../utils/CriticalSectionGuard.hpp"
 
 class ISerialLineSource
 {
@@ -13,13 +14,14 @@ public:
 };
 
 template<std::size_t BufferSize>
-class SerialLineSource : public ISerialLineSource, private hal::BufferedSerialCommunicationObserver
+class SerialLineSource : public ISerialLineSource
 {
 public:
     explicit SerialLineSource(hal::SerialCommunication& serial)
-        : bufferedSerial(serial)
     {
-        Attach(bufferedSerial);
+        serial.ReceiveData([this](infra::ConstByteRange data) {
+            DataReceived(data);
+        });
     }
 
     void ReceiveLine(infra::Function<void(std::string_view)> actionOnLineReceived) override
@@ -32,22 +34,12 @@ public:
         this->actionOnByteReceived = actionOnByteReceived;
     }
 
-    void DataReceived() override
+    void DataReceived(infra::ConstByteRange data)
     {
-        auto& reader = bufferedSerial.Reader();
-
-        while (!reader.Empty())
+        for (char c : data)
         {
-            const auto data = reader.ExtractContiguousRange(reader.Available());
-            for (char c : data)
-            {
-                if (actionOnByteReceived)
-                    actionOnByteReceived(static_cast<uint8_t>(c));
-                ProcessCharacter(c);
-            }
+            ProcessCharacter(c);
         }
-
-        bufferedSerial.AckReceived();
     }
 private:
     void PushCharacter(char c)
@@ -58,28 +50,67 @@ private:
 
     void HandleLineReceived()
     {
-        if (!inputBuffer.empty() && actionOnLineReceived) {
-            actionOnLineReceived(std::string_view(inputBuffer.data(), inputBuffer.size()));
+        if (!inputBuffer.empty()) {
+            infra::EventDispatcher::Instance().Schedule([this]() {
+                std::string_view line;
+                infra::BoundedString::iterator commandEnd = 0;
+                {
+                    CriticalSectionGuard guard;
+                    auto commandBegin = inputBuffer.begin();
+                    while (commandBegin != inputBuffer.end() && (*commandBegin == '\n' || *commandBegin == '\r')) {
+                        ++commandBegin;
+                    }
+                    commandEnd = std::find_if(commandBegin, inputBuffer.end(), [](char c) { return c == '\n' || c == '\r'; });
+                    line = std::string_view(commandBegin, std::distance(commandBegin, commandEnd));
+                }
+                if (actionOnLineReceived) {
+                    actionOnLineReceived(line);
+                }
+                {
+                    CriticalSectionGuard guard;
+                    characterHandlerPosition -= std::distance(inputBuffer.begin(), commandEnd);
+                    characterHandlerPosition = std::clamp(characterHandlerPosition, 0u, inputBuffer.size());
+                    inputBuffer.erase(inputBuffer.begin(), commandEnd);
+                }
+            });
+        } else {
+            inputBuffer.clear();
+            characterHandlerPosition = 0;
         }
-        inputBuffer.clear();
     }
 
     void ProcessCharacter(char c)
     {
+        PushCharacter(c);
+
+        if (!characterHandlerActive) {
+            characterHandlerActive = true;
+            infra::EventDispatcher::Instance().Schedule([this]() {
+                std::size_t bufferSize;
+                {
+                    CriticalSectionGuard guard;
+                    bufferSize = inputBuffer.size();
+                }
+                while (characterHandlerPosition < bufferSize) {
+                    const char c = inputBuffer[characterHandlerPosition++];
+                    if (actionOnByteReceived) {
+                        actionOnByteReceived(static_cast<uint8_t>(c));
+                    }
+                }
+                characterHandlerActive = false;
+            });
+        }
+
         if (c == '\n' || c == '\r')
         {
             HandleLineReceived();
         }
-        else
-        {
-            PushCharacter(c);
-        }
     }
 
 private:
-    constexpr static std::size_t SERIAL_INPUT_BUFFER_SIZE = 8;
-    hal::BufferedSerialCommunicationOnUnbuffered::WithStorage<SERIAL_INPUT_BUFFER_SIZE> bufferedSerial;
     infra::BoundedString::WithStorage<BufferSize> inputBuffer;
     infra::Function<void(std::string_view)> actionOnLineReceived;
     infra::Function<void(uint8_t)> actionOnByteReceived;
+    std::size_t characterHandlerPosition = 0;
+    bool characterHandlerActive = false;
 };

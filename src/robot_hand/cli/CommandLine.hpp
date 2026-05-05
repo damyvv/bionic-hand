@@ -14,6 +14,9 @@ public:
         : lineSource(lineSource)
         , serialOutput(serialOutput)
     {
+    }
+    
+    void Run() {
         lineSource.ReceiveLine([this](std::string_view line) { ProcessLine(line); });
     }
 
@@ -43,6 +46,8 @@ public:
 
 private:
     void ProcessLine(std::string_view line) {
+        if (line.empty())
+            return;
         auto commandName = line.substr(0, line.find(' '));
         auto command = GetCommand(commandName);
         if (!command.has_value())
@@ -52,7 +57,7 @@ private:
             serialOutput.Write("\n");
             return;
         }
-        // Split the arguments by the space character, but only up to MaxArguments arguments (the rest is ignored)
+        // Split the arguments by the space character, but only up to MaxArguments arguments, fail if there are more.
         infra::BoundedVector<std::string_view>::WithMaxSize<MaxArguments> arguments;
         size_t start = commandName.size();
         while (arguments.size() < MaxArguments && start < line.size())
@@ -70,6 +75,11 @@ private:
 
             arguments.push_back(line.substr(start, end - start));
             start = end;
+        }
+        if (start < line.size())
+        {
+            serialOutput.Write("Too many arguments");
+            return;
         }
         command.value().get().Execute(arguments.range(), serialOutput);
     }

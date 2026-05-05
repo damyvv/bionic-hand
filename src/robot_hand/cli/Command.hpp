@@ -20,7 +20,7 @@ public:
         {
             const auto optionalCommand = commandLine.GetCommand(i);
             if (!optionalCommand.has_value()) break;
-            const auto command = optionalCommand.value().get();
+            const auto& command = optionalCommand.value().get();
 
             const std::string_view name = command.Name();
             const std::string_view description = command.Description();
@@ -41,11 +41,6 @@ class EchoCommand : public ICommand
 {
 public:
     void Execute(infra::MemoryRange<const std::string_view> arguments, ISerialOutput& serialOutput) override {
-        if (!arguments.empty())
-        {
-            serialOutput.Write("This command does not take any arguments\n");
-            return;
-        }
         for (const auto argument : arguments)
         {
             serialOutput.Write(argument);
@@ -54,5 +49,5 @@ public:
         serialOutput.Write("\n");
     }
     std::string_view Name() const override { return "echo"; }
-    std::string_view Description() const override { return "Prints 'Echo!'"; }
+    std::string_view Description() const override { return "Echoes the provided arguments"; }
 };
