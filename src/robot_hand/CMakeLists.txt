@@ -2,7 +2,7 @@ file(GLOB_RECURSE SOURCES "*.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_compile_options(${PROJECT_NAME} PRIVATE -g -O0 -DFINGER_COUNT=5)
+target_compile_options(${PROJECT_NAME} PRIVATE -g -O0)
 
 emil_build_for(${PROJECT_NAME} TARGET_MCU_VENDOR st PREREQUISITE_BOOL HALST_BUILD_EXAMPLES)
 

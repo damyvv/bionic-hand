@@ -53,9 +53,9 @@ void CountFingersState::OnEntry(HandDemo& demo)
 
 DemoState* CountFingersState::Update(HandDemo& demo)
 {
-    demo.GetHand().OpenFinger((counter + 1) % FINGER_COUNT);
+    demo.GetHand().OpenFinger((counter + 1) % demo.GetHand().GetFingerCount());
     ++counter;
-    if (counter == FINGER_COUNT) {
+    if (counter == demo.GetHand().GetFingerCount()) {
         return &CountBinaryState::GetInstance();
     }
     return nullptr;
@@ -75,11 +75,11 @@ void CountBinaryState::OnEntry(HandDemo& demo)
 
 DemoState* CountBinaryState::Update(HandDemo& demo)
 {
-    if (counter == (1 << FINGER_COUNT)) {
+    if (counter == (1 << demo.GetHand().GetFingerCount())) {
         return &SlowOpenState::GetInstance();
     }
     
-    for (int i = 0; i < FINGER_COUNT; i++)
+    for (int i = 0; i < demo.GetHand().GetFingerCount(); i++)
     {
         if ((counter >> i) & 0x01)
             demo.GetHand().OpenFinger(i);

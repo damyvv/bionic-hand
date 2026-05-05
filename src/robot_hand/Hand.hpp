@@ -5,6 +5,7 @@
 #include <infra/util/ReallyAssert.hpp>
 #include <optional>
 #include <functional>
+#include <utility>
 
 class IHand
 {
@@ -24,8 +25,8 @@ template<uint8_t NFingers = 5>
 class Hand : public IHand
 {
 public:
-    explicit Hand(std::array<Finger, NFingers>&& fingers)
-        : fingers(std::move(fingers)) {}
+    explicit Hand(const std::array<std::reference_wrapper<Finger>, NFingers>& fingers)
+        : fingers(fingers) {}
     ~Hand() = default;
 
     bool OpenFinger(uint8_t fingerId, float percentage) override
@@ -60,21 +61,21 @@ public:
     {
         for (auto& finger : fingers)
         {
-            finger.Open(percentage);
+            finger.get().Open(percentage);
         }
     }
     void OpenFingers() override
     {
         for (auto& finger : fingers)
         {
-            finger.Open();
+            finger.get().Open();
         }
     }
     void CloseFingers() override
     {
         for (auto& finger : fingers)
         {
-            finger.Close();
+            finger.get().Close();
         }
     }
 
@@ -92,5 +93,5 @@ public:
         return std::nullopt;
     }
 private:
-    std::array<Finger, NFingers> fingers;
+    std::array<std::reference_wrapper<Finger>, NFingers> fingers;
 };

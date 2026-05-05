@@ -9,12 +9,12 @@ class DemoState;
 class HandDemo
 {
 public:
-    HandDemo(Hand<FINGER_COUNT>& hand);
+    HandDemo(IHand& hand);
     ~HandDemo() = default;
     void StartDemo();
     void StopDemo();
     
-    Hand<FINGER_COUNT>& GetHand() { return hand; }
+    IHand& GetHand() { return hand; }
     void SetupTimer(infra::Duration period);
     void CancelTimer();
 private:
@@ -22,7 +22,7 @@ private:
     void TransitionToState(DemoState* newState);
     
 private:
-    Hand<FINGER_COUNT>& hand;
+    IHand& hand;
     std::optional<infra::TimerRepeating> timer;
     DemoState* currentState;
 };

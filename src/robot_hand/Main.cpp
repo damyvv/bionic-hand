@@ -3,7 +3,9 @@
 #include <hal_st/stm32fxxx/DefaultClockNucleoF429ZI.hpp>
 #include <hal_st/stm32fxxx/I2cStm.hpp>
 #include <hal_st/stm32fxxx/UartStm.hpp>
-#include "HandFactory.hpp"
+#include "HandBuilder.hpp"
+#include "drivers/Pca9685.hpp"
+#include "drivers/Servo.hpp"
 #include "demo/HandDemo.hpp"
 #include "cli/SerialLineSource.hpp"
 #include "cli/SerialOutput.hpp"
@@ -30,6 +32,8 @@ int main()
     HAL_Init();
     ConfigureDefaultClockNucleoF429ZI();
 
+    constexpr std::size_t fingerCount = 5;
+
     static main_::StmEventInfrastructure eventInfrastructure;
     constexpr hal::I2cAddress pwmControllerAddress{ 0x40 };
 
@@ -44,8 +48,21 @@ int main()
     static hal::I2cStm i2c{ 1, SCL, SDA };
     static I2CErrorHandler errorHandler;
     static Pca9685 pwmController(i2c, pwmControllerAddress, errorHandler);
-    static std::array<Servo, FINGER_COUNT> servos;
-    Hand<FINGER_COUNT> hand = HandFactory::CreateHand(pwmController, servos);
+    static std::array<Servo, fingerCount> servos{
+        Servo(pwmController.GetChannel(0)),
+        Servo(pwmController.GetChannel(1)),
+        Servo(pwmController.GetChannel(2)),
+        Servo(pwmController.GetChannel(3)),
+        Servo(pwmController.GetChannel(4))
+    };
+
+    static HandBuilder<fingerCount> handBuilder;
+    handBuilder.AttachServoToFinger(0, servos[0], 35.0f, 120.0f);
+    handBuilder.AttachServoToFinger(1, servos[1], 90.0f, 15.0f);
+    handBuilder.AttachServoToFinger(2, servos[2], 95.0f, 15.0f);
+    handBuilder.AttachServoToFinger(3, servos[3], 95.0f, 15.0f);
+    handBuilder.AttachServoToFinger(4, servos[4], 95.0f, 15.0f);
+    IHand& hand = handBuilder.CreateHand();
 
     HandDemo demo(hand);
 

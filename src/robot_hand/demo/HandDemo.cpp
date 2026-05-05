@@ -2,7 +2,7 @@
 #include "DemoStates.hpp"
 #include "infra/timer/Timer.hpp"
 
-HandDemo::HandDemo(Hand<FINGER_COUNT>& hand)
+HandDemo::HandDemo(IHand& hand)
     : hand(hand)
     , currentState(&IdleState::GetInstance())
 {
