@@ -1,5 +1,3 @@
-// Servo Mock class
-
 #pragma once
 
 #include "drivers/Servo.hpp"

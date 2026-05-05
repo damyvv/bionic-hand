@@ -8,7 +8,8 @@
 
 #include "../../src/robot_hand/demo/DemoStates.hpp"
 #include "../../src/robot_hand/Hand.hpp"
-#include "test_doubles/ServoMock.hpp"
+
+#include "test_doubles/HandMock.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -29,17 +30,10 @@ namespace
     {
     protected:
         HandDemoFSMTest()
-            : hand({
-                  Finger(servos[0], 10.0f, 100.0f),
-                  Finger(servos[1], 20.0f, 110.0f),
-                  Finger(servos[2], 30.0f, 120.0f),
-                  Finger(servos[3], 40.0f, 130.0f),
-                  Finger(servos[4], 50.0f, 140.0f) })
-            , demo(hand)
+            : demo(hand)
         {}
 
-        std::array<testing::StrictMock<ServoMock>, FINGER_COUNT> servos;
-        Hand<FINGER_COUNT> hand;
+        testing::NiceMock<HandMock> hand;
         HandDemo demo;
     };
 

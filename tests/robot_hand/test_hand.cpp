@@ -7,26 +7,29 @@
 
 namespace
 {
-    constexpr uint32_t kDefaultPeriod = 20000u;
-    constexpr uint16_t kMinPulseWidth = 544u;
-    constexpr uint16_t kMaxPulseWidth = 2400u;
-
     class HandTest
         : public testing::Test
     {
     protected:
-        std::array<Finger, 5> MakeFingers()
+        Hand<5> CreateHand()
         {
-            return {
-                Finger(servos[0], 10.0f, 100.0f),
-                Finger(servos[1], 20.0f, 110.0f),
-                Finger(servos[2], 30.0f, 120.0f),
-                Finger(servos[3], 40.0f, 130.0f),
-                Finger(servos[4], 50.0f, 140.0f)
-            };
+            return Hand<5>({
+                std::ref(fingers[0]),
+                std::ref(fingers[1]),
+                std::ref(fingers[2]),
+                std::ref(fingers[3]),
+                std::ref(fingers[4])
+            });
         }
 
         std::array<testing::StrictMock<ServoMock>, 5> servos;
+        std::array<Finger, 5> fingers{
+            Finger(servos[0], 10.0f, 100.0f),
+            Finger(servos[1], 20.0f, 110.0f),
+            Finger(servos[2], 30.0f, 120.0f),
+            Finger(servos[3], 40.0f, 130.0f),
+            Finger(servos[4], 50.0f, 140.0f)
+        };
     };
 }
 
@@ -35,21 +38,23 @@ TEST_F(HandTest, ConstructorDoesNotActuateAnyFinger)
     for (auto& servo : servos)
         EXPECT_CALL(servo, SetAngle(testing::_)).Times(0);
 
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
 }
 
 TEST_F(HandTest, GetFingerReturnsRequestedFinger)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
 
     EXPECT_CALL(servos[2], SetAngle(30.0f));
 
-    hand.GetFinger(2).Open();
+    auto finger = hand.GetFinger(2);
+    ASSERT_TRUE(finger.has_value());
+    finger->get().Open();
 }
 
 TEST_F(HandTest, OpenFingerWithPercentageTargetsRequestedFinger)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
 
     EXPECT_CALL(servos[0], SetAngle(55.0f));
 
@@ -58,7 +63,7 @@ TEST_F(HandTest, OpenFingerWithPercentageTargetsRequestedFinger)
 
 TEST_F(HandTest, OpenFingerWithoutPercentageUsesFingerOpenAngle)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
 
     EXPECT_CALL(servos[1], SetAngle(20.0f));
 
@@ -67,7 +72,7 @@ TEST_F(HandTest, OpenFingerWithoutPercentageUsesFingerOpenAngle)
 
 TEST_F(HandTest, CloseFingerTargetsRequestedFinger)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
 
     EXPECT_CALL(servos[4], SetAngle(140.0f));
 
@@ -76,7 +81,7 @@ TEST_F(HandTest, CloseFingerTargetsRequestedFinger)
 
 TEST_F(HandTest, OpenFingersWithPercentageOpensAllFingers)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
     testing::InSequence sequence;
 
     EXPECT_CALL(servos[0], SetAngle(55.0f));
@@ -90,7 +95,7 @@ TEST_F(HandTest, OpenFingersWithPercentageOpensAllFingers)
 
 TEST_F(HandTest, OpenFingersWithoutPercentageFullyOpensAllFingers)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
     testing::InSequence sequence;
 
     EXPECT_CALL(servos[0], SetAngle(10.0f));
@@ -104,7 +109,7 @@ TEST_F(HandTest, OpenFingersWithoutPercentageFullyOpensAllFingers)
 
 TEST_F(HandTest, CloseFingersClosesAllFingers)
 {
-    Hand<5> hand(MakeFingers());
+    Hand<5> hand = CreateHand();
     testing::InSequence sequence;
 
     EXPECT_CALL(servos[0], SetAngle(100.0f));
