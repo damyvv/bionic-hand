@@ -14,6 +14,8 @@ public:
 template<std::size_t BufferSize>
 class SerialLineSource : public ISerialLineSource
 {
+private:
+    static constexpr char deleteCharacter = 0x7F;
 public:
     SerialLineSource() = default;
     explicit SerialLineSource(ISerialInput& serial)
@@ -47,6 +49,12 @@ private:
                 return;
             } else {
                 EmitLine();
+            }
+        }
+        else if (character == deleteCharacter)
+        {
+            if (!inputBuffer.empty()) {
+                inputBuffer.pop_back();
             }
         }
         else if (!inputBuffer.full())
