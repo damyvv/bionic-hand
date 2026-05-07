@@ -1,4 +1,4 @@
-file(GLOB TEST_SOURCES "*.cpp")
+file(GLOB_RECURSE TEST_SOURCES "*.cpp")
 
 add_executable(runRobotHandTests
     ${TEST_SOURCES}
