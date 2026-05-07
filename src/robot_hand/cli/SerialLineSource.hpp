@@ -15,10 +15,11 @@ template<std::size_t BufferSize>
 class SerialLineSource : public ISerialLineSource
 {
 public:
+    SerialLineSource() = default;
     explicit SerialLineSource(ISerialInput& serial)
     {
         serial.ReceiveByte([this](uint8_t byte) {
-            ProcessCharacter(static_cast<char>(byte));
+            SendByte(byte);
         });
     }
 
@@ -26,6 +27,12 @@ public:
     {
         this->actionOnLineReceived = actionOnLineReceived;
     }
+
+    void SendByte(uint8_t byte)
+    {
+        ProcessCharacter(static_cast<char>(byte));
+    }
+
 private:
     void ProcessCharacter(char character)
     {

@@ -41,7 +41,14 @@ int main()
     static hal::GpioPinStm usart3rx{ hal::Port::D, 9 };
     static hal::UartStm uart{ 3, usart3tx, usart3rx };
     static SerialOutput<1024> serialOutput(uart);
-    static SerialLineSource<128> serialLineSource(uart);
+    static SerialInput<32> serialInput(uart);
+    static SerialLineSource<128> serialLineSource;
+    serialInput.ReceiveByte([](uint8_t byte) {
+        // Echo back the received byte.
+        serialOutput.Write(byte);
+        // Also send it to the SerialLineSource to be processed into lines.
+        serialLineSource.SendByte(byte);
+    });
 
     static hal::GpioPinStm SDA{ hal::Port::B, 9 };
     static hal::GpioPinStm SCL{ hal::Port::B, 8 };

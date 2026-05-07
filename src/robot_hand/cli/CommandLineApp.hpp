@@ -26,20 +26,11 @@ public:
         cli.RegisterCommand(demoCommand);
 
         cli.Run();
-
-        EchoInput(serialOutput, lineSource);
     }
 
     // Non-copyable, non-movable: members hold references to each other.
     CommandLineApp(const CommandLineApp&) = delete;
     CommandLineApp& operator=(const CommandLineApp&) = delete;
-
-    void EchoInput(ISerialOutput& serialOutput, ISerialLineSource& lineSource)
-    {
-        lineSource.ReceiveByte([&serialOutput](uint8_t byte) {
-            serialOutput.Write(byte);
-        });
-    }
 
     CliType& Cli() { return cli; }
     const CliType& Cli() const { return cli; }

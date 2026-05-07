@@ -51,6 +51,19 @@ TEST_F(SerialLineSourceTest, ReceiveLineAccumulatesDataUntilLineFeed)
     EXPECT_EQ(std::vector<std::string>({ "abc" }), receivedLines);
 }
 
+TEST_F(SerialLineSourceTest, SendByteAccumulatesDataUntilLineFeed)
+{
+    RegisterLineHandler();
+
+    lineSource.SendByte('h');
+    lineSource.SendByte('i');
+    EXPECT_TRUE(receivedLines.empty());
+
+    lineSource.SendByte('\n');
+
+    EXPECT_EQ(std::vector<std::string>({ "hi" }), receivedLines);
+}
+
 TEST_F(SerialLineSourceTest, ReceiveLineTreatsCarriageReturnAsLineTerminator)
 {
     RegisterLineHandler();
