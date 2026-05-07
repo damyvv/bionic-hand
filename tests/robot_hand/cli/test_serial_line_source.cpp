@@ -155,3 +155,12 @@ TEST_F(SerialLineSourceTest, LfThenCrInSeparateReceivesWithoutDataBetweenTermina
 
     EXPECT_EQ(std::vector<std::string>({ "ok" }), receivedLines);
 }
+
+TEST_F(SerialLineSourceTest, MultipleCrLfPairsWithoutDataBetweenTerminatesMultipleEmptyLines)
+{
+    RegisterLineHandler();
+
+    Receive(std::array<uint8_t, 6>{ 'o', 'k', '\r', '\n' , '\r', '\n' });
+
+    EXPECT_EQ(std::vector<std::string>({ "ok", "" }), receivedLines);
+}

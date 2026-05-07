@@ -29,32 +29,25 @@ public:
 private:
     void ProcessCharacter(char character)
     {
-        if (character == '\n') {
-            if (lastCharacter == '\r') {
-                // We already processed the line when we received the '\r', so just ignore the '\n'.
+        const bool isTerminator = (character == '\n' || character == '\r');
+        const bool previousWasTerminator = (lastCharacter == '\n' || lastCharacter == '\r');
+        const bool isMixedPair = previousWasTerminator && (character != lastCharacter);
+
+        if (isTerminator)
+        {
+            if (isMixedPair) {
                 lastCharacter = 0;
+                return;
             } else {
                 EmitLine();
             }
         }
-        else if (character == '\r') {
-            if (lastCharacter == '\n') {
-                // We already processed the line when we received the '\n', so just ignore the '\r'.
-                lastCharacter = 0;
-            } else {
-                EmitLine();
-            }
+        else if (!inputBuffer.full())
+        {
+            inputBuffer.push_back(character);
         }
-        else {
-            if (inputBuffer.full()) {
-                // The line is too long to fit in the buffer. We will truncate it, but this should not happen in normal operation.
-                assert(false);
-            }
-            else {
-                inputBuffer.push_back(character);
-                lastCharacter = character;
-            }
-        }
+
+        lastCharacter = character;
     }
 
     void EmitLine()
@@ -63,7 +56,6 @@ private:
             actionOnLineReceived(std::string_view(inputBuffer.begin(), inputBuffer.size()));
         }
         inputBuffer.clear();
-        lastCharacter = 0;
     }
 
 private:
