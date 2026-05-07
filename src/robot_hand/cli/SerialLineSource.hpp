@@ -71,7 +71,7 @@ private:
             {
                 CriticalSectionGuard guard;
                 characterHandlerPosition -= std::distance(inputBuffer.begin(), commandEnd);
-                characterHandlerPosition = std::clamp(characterHandlerPosition, 0u, inputBuffer.size());
+                characterHandlerPosition = std::clamp(characterHandlerPosition, std::size_t{ 0 }, inputBuffer.size());
                 inputBuffer.erase(inputBuffer.begin(), commandEnd);
             }
         });
