@@ -31,7 +31,11 @@ public:
 private:
     void DataReceived(infra::ConstByteRange data) {
         CriticalSectionGuard guard;
-        inputBuffer.insert(inputBuffer.end(), data.begin(), data.end());
+        // Fill incoming data into the buffer. If the buffer is full, the remaining data will be dropped.
+        auto spaceLeft = BufferSize - inputBuffer.size();
+        for (size_t i = 0; i < data.size() && i < spaceLeft; ++i) {
+            inputBuffer.push_back(data[i]);
+        }
         if (!processingData) {
             processingData = true;
             infra::EventDispatcher::Instance().Schedule([this]() {

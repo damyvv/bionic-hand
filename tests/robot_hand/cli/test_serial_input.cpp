@@ -85,3 +85,13 @@ TEST_F(SerialInputTest, EmptyReceiveDoesNotInvokeHandlers)
 
     EXPECT_TRUE(receivedBytes.empty());
 }
+
+TEST_F(SerialInputTest, BufferOverflowDoesNotCauseIssues)
+{
+    RegisterByteHandler();
+
+    Receive(std::array<uint8_t, 10>{ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' });
+    ExecuteAllActions();
+
+    EXPECT_EQ(std::vector<uint8_t>({ '1', '2', '3', '4', '5', '6', '7', '8' }), receivedBytes);
+}
