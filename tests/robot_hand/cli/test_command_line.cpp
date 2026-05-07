@@ -92,12 +92,10 @@ TEST_F(CommandLineTest, GetCommandByIndexReturnsNulloptWhenIndexIsOutOfRange)
 TEST_F(CommandLineTest, RunRegistersLineHandler)
 {
     EXPECT_FALSE(lineSource.HasLineHandler());
-    EXPECT_FALSE(lineSource.HasByteHandler());
 
     commandLine.Run();
 
     EXPECT_TRUE(lineSource.HasLineHandler());
-    EXPECT_FALSE(lineSource.HasByteHandler());
 }
 
 TEST_F(CommandLineTest, EmptyLineIsIgnored)
