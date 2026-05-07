@@ -92,16 +92,17 @@ TEST_F(SerialOutputTest, WriteStringReturnsFalseWhenThereIsNoQueueSpace)
 TEST(SerialOutputSmallBufferTest, WriteByteReturnsFalseWhenQueueIsFull)
 {
     testing::StrictMock<SerialCommunicationDouble> serial;
-    SerialOutput<3> serialOutput{ serial };
+    SerialOutput<4> serialOutput{ serial };
     std::deque<infra::Function<void()>> completionCallbacks;
 
     EXPECT_CALL(serial, SendData(testing::_, testing::_))
         .WillOnce([&completionCallbacks](infra::ConstByteRange data, infra::Function<void()> onDone)
             {
-                EXPECT_EQ(std::vector<uint8_t>({ 'x' }), std::vector<uint8_t>(data.begin(), data.end()));
+                EXPECT_EQ(std::vector<uint8_t>({ 'w' }), std::vector<uint8_t>(data.begin(), data.end()));
                 completionCallbacks.push_back(std::move(onDone));
             });
 
+    EXPECT_TRUE(serialOutput.Write(static_cast<uint8_t>('w')));
     EXPECT_TRUE(serialOutput.Write(static_cast<uint8_t>('x')));
     EXPECT_TRUE(serialOutput.Write(static_cast<uint8_t>('y')));
     EXPECT_TRUE(serialOutput.Write(static_cast<uint8_t>('z')));

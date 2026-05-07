@@ -45,6 +45,7 @@ public:
     void SetFrequency(uint16_t frequencyHz);
     inline uint16_t GetFrequency() const { return frequency; }
     inline uint32_t GetPeriodInMicroseconds() const { return periodInUs; }
+    bool IsMessageQueueFull() const;
     
     void SetChannelPulseOn(uint8_t channel, uint16_t pulseOn, infra::Function<void(hal::Result)> onSent = nullptr);
 

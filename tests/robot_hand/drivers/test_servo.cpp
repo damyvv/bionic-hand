@@ -80,3 +80,13 @@ TEST_F(ServoTest, UsesConfiguredFrequencyToComputePeriod)
 
     servo.SetAngle(45.0f);
 }
+
+TEST_F(ServoTest, CopyConstructedServoRetainsConfiguration)
+{
+    Servo original(pwm, 100);
+    Servo copy(original);
+
+    EXPECT_CALL(pwm, SetPulse(1008u, 10000u));
+
+    copy.SetAngle(45.0f);
+}

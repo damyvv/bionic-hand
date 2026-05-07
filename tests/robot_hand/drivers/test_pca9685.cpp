@@ -3,9 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#define private public
 #include "../../src/robot_hand/drivers/Pca9685.hpp"
-#undef private
 
 namespace
 {
@@ -86,11 +84,11 @@ TEST_F(Pca9685QueueTest, SetFrequencyI2CQueueIsFull)
 
     Pca9685 pca9685(i2c, kAddress);
 
-    while (!pca9685.i2cMessageQueue.full()) {
+    while (!pca9685.IsMessageQueueFull()) {
         pca9685.SetChannelPulseOn(0, 0x01FF);
     }
 
-    EXPECT_TRUE(pca9685.i2cMessageQueue.full());
+    EXPECT_TRUE(pca9685.IsMessageQueueFull());
     EXPECT_DEATH(pca9685.SetFrequency(100), "");
 }
 
@@ -100,12 +98,35 @@ TEST_F(Pca9685QueueTest, SetChannelPulseOnQueueIsFull)
 
     Pca9685 pca9685(i2c, kAddress);
 
-    while (!pca9685.i2cMessageQueue.full()) {
+    while (!pca9685.IsMessageQueueFull()) {
         pca9685.SetChannelPulseOn(0, 0x01FF);
     }
 
-    EXPECT_TRUE(pca9685.i2cMessageQueue.full());
+    EXPECT_TRUE(pca9685.IsMessageQueueFull());
     EXPECT_DEATH(pca9685.SetChannelPulseOn(1, 0x01FF), "");
+}
+
+TEST_F(Pca9685Test, GetMessageQueueFullReturnsFalseWhenQueueIsNotFull)
+{
+    testing::InSequence sequence;
+    ExpectInitialization();
+
+    Pca9685 pca9685(i2c, kAddress);
+
+    EXPECT_FALSE(pca9685.IsMessageQueueFull());
+}
+
+TEST_F(Pca9685QueueTest, GetMessageQueueFullReturnsTrueWhenQueueIsFull)
+{
+    EXPECT_CALL(i2c, SendDataMock(kAddress, hal::Action::stop, std::vector<uint8_t>{ 0x00, 0x20 }));
+    
+    Pca9685 pca9685(i2c, kAddress);
+
+    while (!pca9685.IsMessageQueueFull()) {
+        pca9685.SetChannelPulseOn(0, 0x01FF);
+    }
+
+    EXPECT_TRUE(pca9685.IsMessageQueueFull());
 }
 
 TEST_F(Pca9685Test, PrescaleBoundaryValues)
@@ -154,8 +175,6 @@ TEST_F(Pca9685Test, InvokesQueuedMessageCallbackWhenPresent)
         {
             callbackInvoked = (result == hal::Result::complete);
         });
-
-    pca9685.ProcessI2cMessageQueue();
 
     EXPECT_TRUE(callbackInvoked);
 }

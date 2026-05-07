@@ -14,8 +14,35 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "infra/timer/TimerService.hpp"
+
 namespace
 {
+    class DummyTimerService
+        : public infra::TimerService
+    {
+    public:
+        DummyTimerService()
+            : infra::TimerService(infra::systemTimerServiceId)
+        {}
+
+        void NextTriggerChanged() override
+        {}
+
+        infra::TimePoint Now() const override
+        {
+            return now;
+        }
+
+        infra::Duration Resolution() const override
+        {
+            return std::chrono::milliseconds(1);
+        }
+
+    private:
+        infra::TimePoint now{};
+    };
+
     class MockDemoState
         : public DemoState
     {
@@ -33,8 +60,20 @@ namespace
             : demo(hand)
         {}
 
+        DummyTimerService timerService;
+
         testing::NiceMock<HandMock> hand;
         HandDemo demo;
+    };
+
+    class PassiveState
+        : public DemoState
+    {
+    public:
+        DemoState* Update(HandDemo&) override
+        {
+            return nullptr;
+        }
     };
 
     TEST_F(HandDemoFSMTest, ConstructorInitializesIdleState)
@@ -102,5 +141,152 @@ namespace
         demo.TransitionToState(&next);
 
         EXPECT_EQ(demo.currentState, &next);
+    }
+
+    TEST_F(HandDemoFSMTest, StartDemoTransitionsToOpeningFingersState)
+    {
+        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+
+        demo.StartDemo();
+
+        EXPECT_EQ(demo.currentState, &OpeningFingersState::GetInstance());
+        EXPECT_TRUE(demo.timer.has_value());
+    }
+
+    TEST_F(HandDemoFSMTest, StopDemoTransitionsToIdleAndClosesFingers)
+    {
+        demo.StartDemo();
+
+        EXPECT_CALL(hand, CloseFingers());
+
+        demo.StopDemo();
+
+        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, CancelTimerWithoutActiveTimerIsSafe)
+    {
+        EXPECT_FALSE(demo.timer.has_value());
+
+        demo.CancelTimer();
+
+        EXPECT_FALSE(demo.timer.has_value());
+    }
+
+    TEST_F(HandDemoFSMTest, OpeningStateUpdateTransitionsToClosingAndOpensFingers)
+    {
+        demo.currentState = &OpeningFingersState::GetInstance();
+
+        EXPECT_CALL(hand, OpenFingers());
+
+        demo.RunFSM();
+
+        EXPECT_EQ(demo.currentState, &ClosingFingersState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, ClosingStateUpdateTransitionsToCountFingersAndClosesFingers)
+    {
+        demo.currentState = &ClosingFingersState::GetInstance();
+
+        EXPECT_CALL(hand, CloseFingers());
+
+        demo.RunFSM();
+
+        EXPECT_EQ(demo.currentState, &CountFingersState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, CountFingersTransitionsToCountBinaryAfterFingerCountUpdates)
+    {
+        demo.currentState = &CountFingersState::GetInstance();
+        CountFingersState::GetInstance().OnEntry(demo);
+        ON_CALL(hand, GetFingerCount()).WillByDefault(testing::Return(5));
+
+        {
+            testing::InSequence sequence;
+            EXPECT_CALL(hand, OpenFinger(1)).WillOnce(testing::Return(true));
+            EXPECT_CALL(hand, OpenFinger(2)).WillOnce(testing::Return(true));
+            EXPECT_CALL(hand, OpenFinger(3)).WillOnce(testing::Return(true));
+            EXPECT_CALL(hand, OpenFinger(4)).WillOnce(testing::Return(true));
+            EXPECT_CALL(hand, OpenFinger(0)).WillOnce(testing::Return(true));
+        }
+
+        for (int i = 0; i < 4; ++i)
+        {
+            demo.RunFSM();
+            EXPECT_EQ(demo.currentState, &CountFingersState::GetInstance());
+        }
+
+        demo.RunFSM();
+        EXPECT_EQ(demo.currentState, &CountBinaryState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, CountBinaryTransitionsToSlowOpenAfterAllCombinations)
+    {
+        demo.currentState = &CountBinaryState::GetInstance();
+        CountBinaryState::GetInstance().OnEntry(demo);
+        ON_CALL(hand, GetFingerCount()).WillByDefault(testing::Return(5));
+        EXPECT_CALL(hand, OpenFinger(testing::_)).Times(testing::AtLeast(1));
+        EXPECT_CALL(hand, CloseFinger(testing::_)).Times(testing::AtLeast(1));
+
+        for (int i = 0; i < (1 << 5); ++i)
+            demo.RunFSM();
+
+        EXPECT_EQ(demo.currentState, &CountBinaryState::GetInstance());
+
+        demo.RunFSM();
+
+        EXPECT_EQ(demo.currentState, &SlowOpenState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, SlowOpenTransitionsToSlowCloseAtResolutionBoundary)
+    {
+        demo.currentState = &SlowOpenState::GetInstance();
+        SlowOpenState::GetInstance().OnEntry(demo);
+        EXPECT_CALL(hand, OpenFingers(testing::_)).Times(500);
+
+        for (int i = 0; i < 499; ++i)
+        {
+            demo.RunFSM();
+            EXPECT_EQ(demo.currentState, &SlowOpenState::GetInstance());
+        }
+
+        demo.RunFSM();
+        EXPECT_EQ(demo.currentState, &SlowCloseState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, SlowCloseTransitionsToIdleAtResolutionBoundary)
+    {
+        demo.currentState = &SlowCloseState::GetInstance();
+        SlowCloseState::GetInstance().OnEntry(demo);
+        EXPECT_CALL(hand, OpenFingers(testing::_)).Times(500);
+        EXPECT_CALL(hand, CloseFingers());
+
+        for (int i = 0; i < 499; ++i)
+        {
+            demo.RunFSM();
+            EXPECT_EQ(demo.currentState, &SlowCloseState::GetInstance());
+        }
+
+        demo.RunFSM();
+        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, IdleUpdateReturnsNullAndKeepsIdleState)
+    {
+        demo.currentState = &IdleState::GetInstance();
+
+        demo.RunFSM();
+
+        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, DemoStateDefaultHooksCanBeCalled)
+    {
+        PassiveState passive;
+
+        passive.OnEntry(demo);
+        passive.OnExit(demo);
+
+        EXPECT_EQ(passive.Update(demo), nullptr);
     }
 }

@@ -177,3 +177,12 @@ TEST_F(SerialLineSourceTest, MultipleCrLfPairsWithoutDataBetweenTerminatesMultip
 
     EXPECT_EQ(std::vector<std::string>({ "ok", "" }), receivedLines);
 }
+
+TEST_F(SerialLineSourceTest, DeleteCharacterRemovesLastBufferedCharacter)
+{
+    RegisterLineHandler();
+
+    Receive(std::array<uint8_t, 5>{ 'a', 'b', 0x7F, 'c', '\n' });
+
+    EXPECT_EQ(std::vector<std::string>({ "ac" }), receivedLines);
+}

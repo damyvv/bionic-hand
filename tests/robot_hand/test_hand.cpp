@@ -120,3 +120,47 @@ TEST_F(HandTest, CloseFingersClosesAllFingers)
 
     hand.CloseFingers();
 }
+
+TEST_F(HandTest, OpenFingerWithPercentageReturnsFalseWhenFingerIdIsOutOfRange)
+{
+    Hand<5> hand = CreateHand();
+
+    for (auto& servo : servos)
+        EXPECT_CALL(servo, SetAngle(testing::_)).Times(0);
+
+    EXPECT_FALSE(hand.OpenFinger(5, 0.5f));
+}
+
+TEST_F(HandTest, OpenFingerWithoutPercentageReturnsFalseWhenFingerIdIsOutOfRange)
+{
+    Hand<5> hand = CreateHand();
+
+    for (auto& servo : servos)
+        EXPECT_CALL(servo, SetAngle(testing::_)).Times(0);
+
+    EXPECT_FALSE(hand.OpenFinger(7));
+}
+
+TEST_F(HandTest, CloseFingerReturnsFalseWhenFingerIdIsOutOfRange)
+{
+    Hand<5> hand = CreateHand();
+
+    for (auto& servo : servos)
+        EXPECT_CALL(servo, SetAngle(testing::_)).Times(0);
+
+    EXPECT_FALSE(hand.CloseFinger(9));
+}
+
+TEST_F(HandTest, GetFingerReturnsNulloptWhenFingerIdIsOutOfRange)
+{
+    Hand<5> hand = CreateHand();
+
+    EXPECT_FALSE(hand.GetFinger(6).has_value());
+}
+
+TEST_F(HandTest, GetFingerCountReturnsTemplateFingerCount)
+{
+    Hand<5> hand = CreateHand();
+
+    EXPECT_EQ(hand.GetFingerCount(), 5u);
+}

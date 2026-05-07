@@ -64,6 +64,11 @@ void Pca9685::SetFrequency(uint16_t frequencyHz)
     ProcessI2cMessageQueue();
 }
 
+bool Pca9685::IsMessageQueueFull() const
+{
+    return i2cMessageQueue.full();
+}
+
 void Pca9685::SetChannelPulseOn(uint8_t channel, uint16_t pulseOn, infra::Function<void(hal::Result)> onSent)
 {
     if (i2cMessageQueue.full()) {
