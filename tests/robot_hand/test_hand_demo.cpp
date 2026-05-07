@@ -210,32 +210,27 @@ namespace
             EXPECT_CALL(hand, OpenFinger(0)).WillOnce(testing::Return(true));
         }
 
-        for (int i = 0; i < 4; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             demo.RunFSM();
             EXPECT_EQ(demo.currentState, &CountFingersState::GetInstance());
         }
 
         demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &CountBinaryState::GetInstance());
+        EXPECT_EQ(demo.currentState, &WaveState::GetInstance());
     }
 
-    TEST_F(HandDemoFSMTest, CountBinaryTransitionsToSlowOpenAfterAllCombinations)
+    TEST_F(HandDemoFSMTest, WaveTransitionsToSlowCloseAfterWaveCountUpdates)
     {
-        demo.currentState = &CountBinaryState::GetInstance();
-        CountBinaryState::GetInstance().OnEntry(demo);
+        demo.currentState = &WaveState::GetInstance();
+        WaveState::GetInstance().OnEntry(demo);
         ON_CALL(hand, GetFingerCount()).WillByDefault(testing::Return(5));
-        EXPECT_CALL(hand, OpenFinger(testing::_)).Times(testing::AtLeast(1));
-        EXPECT_CALL(hand, CloseFinger(testing::_)).Times(testing::AtLeast(1));
+        EXPECT_CALL(hand, OpenFinger(testing::_, testing::_)).Times(testing::AtLeast(1));
 
-        for (int i = 0; i < (1 << 5); ++i)
+        while (demo.currentState == &WaveState::GetInstance())
             demo.RunFSM();
 
-        EXPECT_EQ(demo.currentState, &CountBinaryState::GetInstance());
-
-        demo.RunFSM();
-
-        EXPECT_EQ(demo.currentState, &SlowOpenState::GetInstance());
+        EXPECT_EQ(demo.currentState, &SlowCloseState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, SlowOpenTransitionsToSlowCloseAtResolutionBoundary)
@@ -251,7 +246,7 @@ namespace
         }
 
         demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &SlowCloseState::GetInstance());
+        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, SlowCloseTransitionsToIdleAtResolutionBoundary)
@@ -259,7 +254,6 @@ namespace
         demo.currentState = &SlowCloseState::GetInstance();
         SlowCloseState::GetInstance().OnEntry(demo);
         EXPECT_CALL(hand, OpenFingers(testing::_)).Times(500);
-        EXPECT_CALL(hand, CloseFingers());
 
         for (int i = 0; i < 499; ++i)
         {
@@ -268,7 +262,7 @@ namespace
         }
 
         demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+        EXPECT_EQ(demo.currentState, &SlowOpenState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, IdleUpdateReturnsNullAndKeepsIdleState)

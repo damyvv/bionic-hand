@@ -53,16 +53,16 @@ private:
     int counter = 0;
 };
 
-class CountBinaryState : public DemoState
+class WaveState : public DemoState
 {
 public:
-    static CountBinaryState& GetInstance();
+    static WaveState& GetInstance();
 
     void OnEntry(HandDemo& demo) override;
     DemoState* Update(HandDemo& demo) override;
 
 private:
-    CountBinaryState() = default;
+    WaveState() = default;
 
     int counter = 0;
 };
