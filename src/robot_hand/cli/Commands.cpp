@@ -1,5 +1,19 @@
 #include "Commands.hpp"
 #include <charconv>
+#include "../demo/DemoStates.hpp"
+
+namespace {
+    std::optional<std::size_t> StringToValue(std::string_view string)
+    {
+        std::size_t value = 0;
+        const auto result = std::from_chars(string.data(), string.data() + string.size(), value);
+        if (result.ec != std::errc())
+        {
+            return std::nullopt;
+        }
+        return value;
+    }
+}
 
 HelpCommand::HelpCommand(ICommandLine& commandLine)
     : commandLine(commandLine)
@@ -51,10 +65,8 @@ void OpenHandCommand::Execute(infra::MemoryRange<const std::string_view> argumen
     else if (arguments.size() == 1)
     {
         const std::string_view argument = arguments.front();
-        uint8_t fingerId = 0;
-        const auto result = std::from_chars(argument.data(), argument.data() + argument.size(), fingerId);
-        
-        if (result.ec != std::errc() || fingerId >= hand.GetFingerCount())
+        const auto optionalValue = StringToValue(argument);
+        if (!optionalValue.has_value() || optionalValue.value() >= hand.GetFingerCount())
         {
             serialOutput.Write("Invalid argument, expected a number between 0 and ");
             serialOutput.Write(std::to_string(hand.GetFingerCount() - 1));
@@ -62,7 +74,7 @@ void OpenHandCommand::Execute(infra::MemoryRange<const std::string_view> argumen
             return;
         }
         
-        hand.OpenFinger(fingerId);
+        hand.OpenFinger(optionalValue.value());
     }
     else
     {
@@ -96,18 +108,15 @@ void CloseHandCommand::Execute(infra::MemoryRange<const std::string_view> argume
     else if (arguments.size() == 1)
     {
         const std::string_view argument = arguments.front();
-        uint8_t fingerId = 0;
-        const auto result = std::from_chars(argument.data(), argument.data() + argument.size(), fingerId);
-        
-        if (result.ec != std::errc() || fingerId >= hand.GetFingerCount())
+        const auto optionalValue = StringToValue(argument);
+        if (!optionalValue.has_value() || optionalValue.value() >= hand.GetFingerCount())
         {
             serialOutput.Write("Invalid argument, expected a number between 0 and ");
             serialOutput.Write(std::to_string(hand.GetFingerCount() - 1));
             serialOutput.Write("\n");
             return;
         }
-        
-        hand.CloseFinger(fingerId);
+        hand.CloseFinger(optionalValue.value());
     }
     else
     {
@@ -163,4 +172,44 @@ std::string_view DemoCommand::Name() const
 std::string_view DemoCommand::Description() const
 {
     return "Starts or stops the demo (argument should be 'start' or 'stop')";
+}
+
+WaveCommand::WaveCommand(HandDemo& handDemo)
+    : handDemo(handDemo)
+{
+}
+
+void WaveCommand::Execute(infra::MemoryRange<const std::string_view> arguments, ISerialOutput& serialOutput)
+{
+    int waveCount = 0;
+    if (arguments.empty()) {
+        waveCount = 2; // Default wave count
+    } else if (arguments.size() == 1) {
+        const std::string_view argument = arguments.front();
+        const auto optionalValue = StringToValue(argument);
+        if (!optionalValue.has_value())
+        {
+            serialOutput.Write("Invalid argument, expected a number\n");
+            return;
+        }
+        waveCount = optionalValue.value();
+    } else {
+        serialOutput.Write("Too many arguments, expected at most 1\n");
+        return;
+    }
+    auto& waveState = WaveState::GetInstance();
+    waveState.SetWaveCount(waveCount);
+    waveState.SetNextState(&IdleState::GetInstance());
+    handDemo.TransitionToState(&waveState);
+    serialOutput.Write("Waving...\n");
+}
+
+std::string_view WaveCommand::Name() const
+{
+    return "wave";
+}
+
+std::string_view WaveCommand::Description() const
+{
+    return "Waves the hand (optionally takes the number of waves as an argument)";
 }

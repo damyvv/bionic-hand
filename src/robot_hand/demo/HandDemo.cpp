@@ -10,6 +10,17 @@ HandDemo::HandDemo(IHand& hand)
 
 void HandDemo::StartDemo()
 {
+    // Setup state transitions for the demo.
+    OpeningFingersState::GetInstance().SetNextState(&ClosingFingersState::GetInstance());
+    ClosingFingersState::GetInstance().SetNextState(&CountFingersState::GetInstance());
+    CountFingersState::GetInstance().SetNextState(&WaveState::GetInstance());
+    WaveState::GetInstance().SetNextState(&SlowOpenState::GetInstance());
+    SlowOpenState::GetInstance().SetNextState(&SlowCloseState::GetInstance());
+    SlowCloseState::GetInstance().SetNextState(&IdleState::GetInstance());
+
+    // Configurations for the demo
+    WaveState::GetInstance().SetWaveCount(2);
+
     TransitionToState(&OpeningFingersState::GetInstance());
 }
 

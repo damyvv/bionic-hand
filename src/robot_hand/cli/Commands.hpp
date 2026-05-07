@@ -51,3 +51,16 @@ public:
 private:
     HandDemo& handDemo;
 };
+
+class WaveCommand : public ICommand
+{
+public:
+    explicit WaveCommand(HandDemo& handDemo);
+    void Execute(infra::MemoryRange<const std::string_view> arguments, ISerialOutput& serialOutput) override;
+    std::string_view Name() const override;
+    std::string_view Description() const override;
+private:
+    HandDemo& handDemo;
+    int counter = 0;
+    
+};

@@ -20,7 +20,7 @@ void OpeningFingersState::OnEntry(HandDemo& demo)
 DemoState* OpeningFingersState::Update(HandDemo& demo)
 {
     demo.GetHand().OpenFingers();
-    return &ClosingFingersState::GetInstance();
+    return nextState;
 }
 
 ClosingFingersState& ClosingFingersState::GetInstance()
@@ -37,7 +37,7 @@ void ClosingFingersState::OnEntry(HandDemo& demo)
 DemoState* ClosingFingersState::Update(HandDemo& demo)
 {
     demo.GetHand().CloseFingers();
-    return &CountFingersState::GetInstance();
+    return nextState;
 }
 
 CountFingersState& CountFingersState::GetInstance()
@@ -55,9 +55,13 @@ void CountFingersState::OnEntry(HandDemo& demo)
 DemoState* CountFingersState::Update(HandDemo& demo)
 {
     if (counter == demo.GetHand().GetFingerCount()) {
-        return &WaveState::GetInstance();
+        demo.GetHand().CloseFingers();
     }
-    demo.GetHand().OpenFinger((counter + 1) % demo.GetHand().GetFingerCount());
+    else if (counter > demo.GetHand().GetFingerCount()) {
+        return nextState;
+    } else {
+        demo.GetHand().OpenFinger((counter + 1) % demo.GetHand().GetFingerCount());
+    }
     ++counter;
     return nullptr;
 }
@@ -72,18 +76,17 @@ void WaveState::OnEntry(HandDemo& demo)
 {
     counter = 0;
     demo.SetupTimer(waveTimerPeriod);
+    demo.GetHand().CloseFingers();
 }
 
 DemoState* WaveState::Update(HandDemo& demo)
 {
-    constexpr int totalWaves = 2;
-
-    if (counter >= demo.GetHand().GetFingerCount() * totalWaves * 2) {
-        return &SlowCloseState::GetInstance();
+    if (counter >= demo.GetHand().GetFingerCount() * waves * 2) {
+        return nextState;
     }
-    bool closeFinger = (counter / demo.GetHand().GetFingerCount()) % 2 == 0;
+    bool openFinger = (counter / demo.GetHand().GetFingerCount()) % 2 == 0;
     uint8_t fingerId = counter % demo.GetHand().GetFingerCount();
-    demo.GetHand().OpenFinger(fingerId, closeFinger ? 0.0f : 1.0f);
+    demo.GetHand().OpenFinger(fingerId, openFinger ? 1.0f : 0.0f);
     ++counter;
     return nullptr;
 }
@@ -105,7 +108,7 @@ DemoState* SlowOpenState::Update(HandDemo& demo)
     demo.GetHand().OpenFingers(counter / static_cast<float>(slowMoveResolution));
     ++counter;
     if (counter >= slowMoveResolution) {
-        return &IdleState::GetInstance();
+        return nextState;
     }
     return nullptr;
 }
@@ -127,7 +130,7 @@ DemoState* SlowCloseState::Update(HandDemo& demo)
     demo.GetHand().OpenFingers(counter / static_cast<float>(slowMoveResolution));
     --counter;
     if (counter <= -1) {
-        return &SlowOpenState::GetInstance();
+        return nextState;
     }
     return nullptr;
 }

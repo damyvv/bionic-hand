@@ -17,9 +17,10 @@ public:
     IHand& GetHand() { return hand; }
     void SetupTimer(infra::Duration period);
     void CancelTimer();
+    void TransitionToState(DemoState* newState);
+    void GetCurrentState(DemoState*& state) { state = currentState; }
 private:
     void RunFSM();
-    void TransitionToState(DemoState* newState);
     
 private:
     IHand& hand;
