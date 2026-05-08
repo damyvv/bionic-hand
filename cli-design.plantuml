@@ -1,0 +1,101 @@
+@startuml
+
+' Command line interface design
+
+interface "hal::SerialCommunication" as SerialCommunication {
+    +SendData(data: ConstByteRange, onSent: Function): void
+    +ReceiveData(onReceived: Function): void
+}
+
+interface ISerialInput {
+    +ReceiveByte(onByteReceived: Function): void
+}
+
+interface ISerialOutput {
+    +Write(data: string_view): bool
+    +Write(byte: uint8_t): bool
+}
+
+interface ISerialLineSource {
+    +ReceiveLine(onLineReceived: Function): void
+}
+
+interface ICommandLine {
+    +RegisterCommand(command: ICommand): bool
+    +GetCommand(name: string_view): optional<ICommand>
+    +GetCommand(index: size_t): optional<ICommand>
+}
+
+interface ICommand {
+    +Execute(arguments: MemoryRange, output: ISerialOutput): void
+    +Name(): string_view
+    +Description(): string_view
+}
+
+class "SerialInput<BufferSize>" as SerialInput implements ISerialInput {
+    -serial: SerialCommunication
+}
+
+class "SerialOutput<BufferSize>" as SerialOutput implements ISerialOutput {
+    -serial: SerialCommunication
+}
+
+class "SerialLineSource<BufferSize>" as SerialLineSource implements ISerialLineSource {
+    -serialInput: ISerialInput
+    +SendByte(byte: uint8_t): void
+}
+
+class "CommandLine<MaxCommands, MaxArguments>" as CommandLine implements ICommandLine {
+    -lineSource: ISerialLineSource
+    -serialOutput: ISerialOutput
+    -commands: ICommand[]
+    +Run(): void
+    -ProcessLine(line: string_view): void
+}
+
+class CommandLineApp {
+    -cli: CommandLine
+    -helpCommand: HelpCommand
+    -openHandCommand: OpenHandCommand
+    -closeHandCommand: CloseHandCommand
+    ' -demoCommand: DemoCommand
+    ' -waveCommand: WaveCommand
+    ' -gameCommand: GameCommand
+    +Cli(): CommandLine
+}
+
+class HelpCommand implements ICommand {
+    -commandLine: ICommandLine
+}
+
+class OpenHandCommand implements ICommand {
+    -hand: IHand
+}
+
+class CloseHandCommand implements ICommand {
+    -hand: IHand
+}
+
+' class DemoCommand implements ICommand {
+'     -handDemo: HandDemo
+' }
+
+' class WaveCommand implements ICommand {
+'     -handDemo: HandDemo
+' }
+
+' class GameCommand implements ICommand {
+'     -handDemo: HandDemo
+' }
+
+SerialInput --> SerialCommunication : uses
+SerialOutput --> SerialCommunication : uses
+SerialLineSource --> ISerialInput : uses
+CommandLine --> ISerialLineSource : uses
+CommandLine --> ISerialOutput : uses
+CommandLineApp --> CommandLine : owns
+CommandLineApp --> ISerialLineSource : uses
+CommandLineApp --> ISerialOutput : uses
+HelpCommand --> ICommandLine : uses
+
+@enduml

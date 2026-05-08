@@ -1,5 +1,4 @@
 @startuml
-
 package hal {
     interface PulseWidthModulation {
         +SetDuty(dutyPercent: uint8): void
@@ -7,86 +6,55 @@ package hal {
         +Start(): void
         +Stop(): void
     }
-
-    interface I2cMaster {
-        +SendData(address: uint8, data: uint8[], nextAction, onSent: Function): void
-        +ReceiveData(address: uint8, data: uint8[], nextAction, onReceived: Function): void
-        +SetErrorPolicy(policy: I2cErrorPolicy&): void
-        +ResetErrorPolicy(): void        
-    }
-
-    class I2cStm {
-        +SendData(address: uint8, data: uint8[], nextAction, onSent: Function): void
-        +ReceiveData(address: uint8, data: uint8[], nextAction, onReceived: Function): void
-        +SetErrorPolicy(policy: I2cErrorPolicy&): void
-        +ResetErrorPolicy(): void
-    }
-
-    I2cMaster <|.. I2cStm
 }
 
-struct Pca9685Message {
-    +data: uint8[]
-    +onSent: Function
+interface IServo {
+    +SetAngle(angle: float): void
 }
-
-class Pca9685 {
-    -i2cMessageQueue: std::queue<Pca9685Message>
-    -i2c: I2cMaster
-    -address: uint8
-    -frequency: uint16
-    +Pca9685(i2c: I2cMaster, address: uint8, frequency: uint16)
-    +GetChannel(channel: uint8): Pca9685Channel
-    +SetFrequency(frequency: uint16): void
-    +GetFrequency(): uint16
-    +SetChannelPulseOn(channel: uint8, pulseOn: uint16): void
-    -ProcessI2cMessageQueue(): void
-}
-
-class Pca9685Channel {
-    -pca9685: Pca9685
-    -channel: uint8
-    +Pca9685Channel(pca9685: Pca9685, channel: uint8)
-}
-
-Pca9685 "1" *-- "16" Pca9685Channel
-I2cStm --o Pca9685
-Pca9685Channel ..|> PulseWidthModulation
 
 class Servo {
     -pwm: PulseWidthModulation
     +Servo(pwm: PulseWidthModulation)
-    +SetAngle(percent: float): void
-}
-
-interface IServo {
-    +SetAngle(percent: float): void
+    +SetAngle(angle: float): void
 }
 
 class Finger {
     -servo: IServo
-    -beginAngle: float
-    -endAngle: float
-    +Finger(servo: IServo, beginAngle: float, endAngle: float)
-    +SetPosition(percent: float): void
+    -openAngle: float
+    -closedAngle: float
+    +Finger(servo: IServo, openAngle: float, closedAngle: float)
+    +Open(percent: float): void
 }
 
-class Hand {
-    -fingers: Finger[]
-    +Hand(fingers: Finger[])
-    +SetFingerPosition(finger: uint8, percent: float): void
-    +SetAllFingerPosition(percent: float): void
+interface IHand {
+    +OpenFinger(finger: uint8, percent: float): bool
+    +OpenFingers(percent: float): void
+    +OpenFinger(finger: uint8): bool
+    +CloseFinger(finger: uint8): bool
+    +OpenFingers(): void
+    +CloseFingers(): void
+    +GetFingerCount(): size_t
 }
 
-class HandFactory {
-    +CreateHand(i2c: I2cMaster, address: uint8): Hand
+class Hand<FingerCount> {
+    -fingers: Finger&[]
+    +Hand(fingers: Finger&[])
 }
 
-Pca9685 ..> Pca9685Message : queues
-Pca9685Channel --o Servo
-Servo .l.|> IServo
-Servo --o Finger
-Finger --* Hand
-HandFactory ..> Hand : creates
+class HandBuilder<FingerCount> {
+    -hand: Hand<FingerCount>
+    -fingers: Finger[FingerCount]
+    +AttachServoToFinger(finger: uint8, servo: IServo,
+    \topenAngle: float, closedAngle: float): void
+    +CreateHand(): IHand
+}
+
+PulseWidthModulation --o Servo
+Servo ..|> IServo
+IServo --o Finger
+Finger ..* Hand
+Hand ..|> IHand
+HandBuilder .u.> Hand : creates
+HandBuilder .u.> IServo : wires
 
 @enduml
