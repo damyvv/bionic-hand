@@ -11,6 +11,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <algorithm>
 
 #include "infra/timer/TimerService.hpp"
 
@@ -41,6 +42,16 @@ namespace
         {
             now = NextTrigger();
             Progressed(now);
+        }
+
+        void SetNow(infra::TimePoint newNow)
+        {
+            now = newNow;
+        }
+
+        void SetNowMilliseconds(int64_t milliseconds)
+        {
+            now = infra::TimePoint(std::chrono::milliseconds(milliseconds));
         }
 
     private:
@@ -310,6 +321,7 @@ namespace
         timerService.TriggerNext();
 
         EXPECT_EQ(demo.GetCurrentState(), &IdleState::GetInstance());
+        EXPECT_EQ(IdleState::GetInstance().Update(demo), nullptr);
     }
 
     TEST_F(HandDemoFSMTest, DemoStateDefaultHooksCanBeCalled)
@@ -320,5 +332,92 @@ namespace
         passive.OnExit(demo);
 
         EXPECT_EQ(passive.Update(demo), nullptr);
+    }
+
+    TEST_F(HandDemoFSMTest, GameStateGetInstanceReturnsStableInstance)
+    {
+        EXPECT_EQ(&GameState::GetInstance(), &GameState::GetInstance());
+    }
+
+    TEST_F(HandDemoFSMTest, GameStateOnEntryStartsCountdownAndClosesFingers)
+    {
+        EXPECT_CALL(hand, CloseFingers());
+
+        demo.TransitionToState(&GameState::GetInstance());
+
+        EXPECT_CALL(hand, OpenFinger(1));
+        EXPECT_CALL(serialOutputMock, Write(static_cast<uint8_t>('1')));
+        EXPECT_CALL(serialOutputMock, Write(std::string_view("...\n")));
+
+        timerService.TriggerNext();
+    }
+
+    TEST_F(HandDemoFSMTest, GameStatePickRockWritesRockAndClosesFingers)
+    {
+        timerService.SetNowMilliseconds(0);
+
+        std::vector<std::string> textWrites;
+        ON_CALL(serialOutputMock, Write(testing::A<std::string_view>())).WillByDefault([&textWrites](std::string_view data)
+            {
+                textWrites.emplace_back(data);
+                return true;
+            });
+
+        demo.TransitionToState(&GameState::GetInstance());
+
+        for (int i = 0; i < 4; ++i)
+            timerService.TriggerNext();
+
+        EXPECT_TRUE(std::find(textWrites.begin(), textWrites.end(), "Rock!\n") != textWrites.end());
+    }
+
+    TEST_F(HandDemoFSMTest, GameStatePickPaperWritesPaperAndOpensFingers)
+    {
+        timerService.SetNowMilliseconds(1);
+
+        std::vector<std::string> textWrites;
+        ON_CALL(serialOutputMock, Write(testing::A<std::string_view>())).WillByDefault([&textWrites](std::string_view data)
+            {
+                textWrites.emplace_back(data);
+                return true;
+            });
+
+        EXPECT_CALL(hand, OpenFingers()).Times(testing::AtLeast(1));
+        demo.TransitionToState(&GameState::GetInstance());
+
+        for (int i = 0; i < 4; ++i)
+            timerService.TriggerNext();
+
+        EXPECT_TRUE(std::find(textWrites.begin(), textWrites.end(), "Paper!\n") != textWrites.end());
+    }
+
+    TEST_F(HandDemoFSMTest, GameStatePickScissorsWritesScissorsAndOpensTwoFingers)
+    {
+        timerService.SetNowMilliseconds(2);
+
+        std::vector<std::string> textWrites;
+        ON_CALL(serialOutputMock, Write(testing::A<std::string_view>())).WillByDefault([&textWrites](std::string_view data)
+            {
+                textWrites.emplace_back(data);
+                return true;
+            });
+
+        demo.TransitionToState(&GameState::GetInstance());
+
+        for (int i = 0; i < 4; ++i)
+            timerService.TriggerNext();
+
+        EXPECT_TRUE(std::find(textWrites.begin(), textWrites.end(), "Scissors!\n") != textWrites.end());
+    }
+
+    TEST_F(HandDemoFSMTest, GameStateTransitionsBackToIdleAfterTimeout)
+    {
+        EXPECT_CALL(hand, CloseFingers()).Times(testing::AtLeast(2));
+        demo.TransitionToState(&GameState::GetInstance());
+
+        while (demo.GetCurrentState() == &GameState::GetInstance())
+            timerService.TriggerNext();
+
+        EXPECT_EQ(demo.GetCurrentState(), &IdleState::GetInstance());
     }
 }
