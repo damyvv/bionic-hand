@@ -20,7 +20,7 @@ public:
     void SetupTimer(infra::Duration period);
     void CancelTimer();
     void TransitionToState(DemoState* newState);
-    void GetCurrentState(DemoState*& state) { state = currentState; }
+    const DemoState* GetCurrentState() const { return currentState; }
     const infra::TimerService& GetTimerService() const { return timerService; }
     ISerialOutput& GetSerialOutput() { return serialOutput; }
 private:

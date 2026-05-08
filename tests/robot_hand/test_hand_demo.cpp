@@ -2,14 +2,12 @@
 #define FINGER_COUNT 5
 #endif
 
-#define private public
 #include "../../src/robot_hand/demo/HandDemo.hpp"
-#undef private
-
 #include "../../src/robot_hand/demo/DemoStates.hpp"
 #include "../../src/robot_hand/Hand.hpp"
 
 #include "test_doubles/HandMock.hpp"
+#include "test_doubles/SerialOutputMock.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -39,6 +37,12 @@ namespace
             return std::chrono::milliseconds(1);
         }
 
+        void TriggerNext()
+        {
+            now = NextTrigger();
+            Progressed(now);
+        }
+
     private:
         infra::TimePoint now{};
     };
@@ -57,8 +61,10 @@ namespace
     {
     protected:
         HandDemoFSMTest()
-            : demo(hand)
-        {}
+            : demo(hand, timerService, serialOutputMock)
+        {
+            demo.SetupTimer(std::chrono::milliseconds(1));
+        }
 
         void SetUp() override
         {
@@ -85,6 +91,7 @@ namespace
         DummyTimerService timerService;
 
         testing::NiceMock<HandMock> hand;
+        testing::NiceMock<SerialOutputMock> serialOutputMock;
         HandDemo demo;
     };
 
@@ -100,7 +107,7 @@ namespace
 
     TEST_F(HandDemoFSMTest, ConstructorInitializesIdleState)
     {
-        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+        EXPECT_EQ(demo.GetCurrentState(), &IdleState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, GetHandReturnsOriginalReference)
@@ -113,7 +120,8 @@ namespace
         testing::StrictMock<MockDemoState> fromState;
         testing::StrictMock<MockDemoState> toState;
 
-        demo.currentState = &fromState;
+        EXPECT_CALL(fromState, OnEntry(testing::Ref(demo)));
+        demo.TransitionToState(&fromState);
 
         testing::InSequence s;
         EXPECT_CALL(fromState, OnExit(testing::Ref(demo)));
@@ -121,58 +129,59 @@ namespace
 
         demo.TransitionToState(&toState);
 
-        EXPECT_EQ(demo.currentState, &toState);
+        EXPECT_EQ(demo.GetCurrentState(), &toState);
     }
 
     TEST_F(HandDemoFSMTest, RunFSMNoTransitionWhenUpdateReturnsNull)
     {
         testing::StrictMock<MockDemoState> current;
-        demo.currentState = &current;
+
+        EXPECT_CALL(current, OnEntry(testing::Ref(demo)));
+        demo.TransitionToState(&current);
 
         EXPECT_CALL(current, Update(testing::Ref(demo))).WillOnce(testing::Return(nullptr));
         EXPECT_CALL(current, OnExit(testing::_)).Times(0);
 
-        demo.RunFSM();
+        timerService.TriggerNext();
 
-        EXPECT_EQ(demo.currentState, &current);
+        EXPECT_EQ(demo.GetCurrentState(), &current);
     }
 
     TEST_F(HandDemoFSMTest, RunFSMTransitionsWhenUpdateReturnsNextState)
     {
         testing::StrictMock<MockDemoState> current;
         testing::StrictMock<MockDemoState> next;
-        demo.currentState = &current;
+
+        EXPECT_CALL(current, OnEntry(testing::Ref(demo)));
+        demo.TransitionToState(&current);
 
         testing::InSequence s;
         EXPECT_CALL(current, Update(testing::Ref(demo))).WillOnce(testing::Return(&next));
         EXPECT_CALL(current, OnExit(testing::Ref(demo)));
         EXPECT_CALL(next, OnEntry(testing::Ref(demo)));
 
-        demo.RunFSM();
+        timerService.TriggerNext();
 
-        EXPECT_EQ(demo.currentState, &next);
+        EXPECT_EQ(demo.GetCurrentState(), &next);
     }
 
     TEST_F(HandDemoFSMTest, TransitionToStateWorksWhenCurrentIsNull)
     {
         testing::StrictMock<MockDemoState> next;
-        demo.currentState = nullptr;
-
         EXPECT_CALL(next, OnEntry(testing::Ref(demo)));
 
         demo.TransitionToState(&next);
 
-        EXPECT_EQ(demo.currentState, &next);
+        EXPECT_EQ(demo.GetCurrentState(), &next);
     }
 
     TEST_F(HandDemoFSMTest, StartDemoTransitionsToOpeningFingersState)
     {
-        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+        EXPECT_EQ(demo.GetCurrentState(), &IdleState::GetInstance());
 
         demo.StartDemo();
 
-        EXPECT_EQ(demo.currentState, &OpeningFingersState::GetInstance());
-        EXPECT_TRUE(demo.timer.has_value());
+        EXPECT_EQ(demo.GetCurrentState(), &OpeningFingersState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, StopDemoTransitionsToIdleAndClosesFingers)
@@ -183,49 +192,40 @@ namespace
 
         demo.StopDemo();
 
-        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
-    }
-
-    TEST_F(HandDemoFSMTest, CancelTimerWithoutActiveTimerIsSafe)
-    {
-        EXPECT_FALSE(demo.timer.has_value());
-
-        demo.CancelTimer();
-
-        EXPECT_FALSE(demo.timer.has_value());
+        EXPECT_EQ(demo.GetCurrentState(), &IdleState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, OpeningStateUpdateTransitionsToConfiguredNextStateAndOpensFingers)
     {
         testing::NiceMock<MockDemoState> nextState;
         OpeningFingersState::GetInstance().SetNextState(&nextState);
-        demo.currentState = &OpeningFingersState::GetInstance();
+        demo.TransitionToState(&OpeningFingersState::GetInstance());
 
         EXPECT_CALL(hand, OpenFingers());
 
-        demo.RunFSM();
+        timerService.TriggerNext();
 
-        EXPECT_EQ(demo.currentState, &nextState);
+        EXPECT_EQ(demo.GetCurrentState(), &nextState);
     }
 
     TEST_F(HandDemoFSMTest, ClosingStateUpdateTransitionsToConfiguredNextStateAndClosesFingers)
     {
         testing::NiceMock<MockDemoState> nextState;
         ClosingFingersState::GetInstance().SetNextState(&nextState);
-        demo.currentState = &ClosingFingersState::GetInstance();
+        demo.TransitionToState(&ClosingFingersState::GetInstance());
 
         EXPECT_CALL(hand, CloseFingers());
 
-        demo.RunFSM();
+        timerService.TriggerNext();
 
-        EXPECT_EQ(demo.currentState, &nextState);
+        EXPECT_EQ(demo.GetCurrentState(), &nextState);
     }
 
     TEST_F(HandDemoFSMTest, CountFingersTransitionsToConfiguredNextStateAfterFingerCountUpdates)
     {
         testing::NiceMock<MockDemoState> nextState;
         CountFingersState::GetInstance().SetNextState(&nextState);
-        demo.currentState = &CountFingersState::GetInstance();
+        demo.TransitionToState(&CountFingersState::GetInstance());
         CountFingersState::GetInstance().OnEntry(demo);
         ON_CALL(hand, GetFingerCount()).WillByDefault(testing::Return(5));
 
@@ -240,15 +240,15 @@ namespace
 
         for (int i = 0; i < 5; ++i)
         {
-            demo.RunFSM();
-            EXPECT_EQ(demo.currentState, &CountFingersState::GetInstance());
+            timerService.TriggerNext();
+            EXPECT_EQ(demo.GetCurrentState(), &CountFingersState::GetInstance());
         }
 
-        demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &CountFingersState::GetInstance());
+        timerService.TriggerNext();
+        EXPECT_EQ(demo.GetCurrentState(), &CountFingersState::GetInstance());
 
-        demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &nextState);
+        timerService.TriggerNext();
+        EXPECT_EQ(demo.GetCurrentState(), &nextState);
     }
 
     TEST_F(HandDemoFSMTest, WaveTransitionsToConfiguredNextStateAfterWaveCountUpdates)
@@ -256,60 +256,60 @@ namespace
         testing::NiceMock<MockDemoState> nextState;
         WaveState::GetInstance().SetNextState(&nextState);
         WaveState::GetInstance().SetWaveCount(1);
-        demo.currentState = &WaveState::GetInstance();
+        demo.TransitionToState(&WaveState::GetInstance());
         WaveState::GetInstance().OnEntry(demo);
         ON_CALL(hand, GetFingerCount()).WillByDefault(testing::Return(5));
         EXPECT_CALL(hand, OpenFinger(testing::_, testing::_)).Times(testing::AtLeast(1));
 
-        while (demo.currentState == &WaveState::GetInstance())
-            demo.RunFSM();
+        while (demo.GetCurrentState() == &WaveState::GetInstance())
+            timerService.TriggerNext();
 
-        EXPECT_EQ(demo.currentState, &nextState);
+        EXPECT_EQ(demo.GetCurrentState(), &nextState);
     }
 
     TEST_F(HandDemoFSMTest, SlowOpenTransitionsToConfiguredNextStateAtResolutionBoundary)
     {
         testing::NiceMock<MockDemoState> nextState;
         SlowOpenState::GetInstance().SetNextState(&nextState);
-        demo.currentState = &SlowOpenState::GetInstance();
+        demo.TransitionToState(&SlowOpenState::GetInstance());
         SlowOpenState::GetInstance().OnEntry(demo);
         EXPECT_CALL(hand, OpenFingers(testing::_)).Times(500);
 
         for (int i = 0; i < 499; ++i)
         {
-            demo.RunFSM();
-            EXPECT_EQ(demo.currentState, &SlowOpenState::GetInstance());
+            timerService.TriggerNext();
+            EXPECT_EQ(demo.GetCurrentState(), &SlowOpenState::GetInstance());
         }
 
-        demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &nextState);
+        timerService.TriggerNext();
+        EXPECT_EQ(demo.GetCurrentState(), &nextState);
     }
 
     TEST_F(HandDemoFSMTest, SlowCloseTransitionsToConfiguredNextStateAtResolutionBoundary)
     {
         testing::NiceMock<MockDemoState> nextState;
         SlowCloseState::GetInstance().SetNextState(&nextState);
-        demo.currentState = &SlowCloseState::GetInstance();
+        demo.TransitionToState(&SlowCloseState::GetInstance());
         SlowCloseState::GetInstance().OnEntry(demo);
         EXPECT_CALL(hand, OpenFingers(testing::_)).Times(500);
 
         for (int i = 0; i < 499; ++i)
         {
-            demo.RunFSM();
-            EXPECT_EQ(demo.currentState, &SlowCloseState::GetInstance());
+            timerService.TriggerNext();
+            EXPECT_EQ(demo.GetCurrentState(), &SlowCloseState::GetInstance());
         }
 
-        demo.RunFSM();
-        EXPECT_EQ(demo.currentState, &nextState);
+        timerService.TriggerNext();
+        EXPECT_EQ(demo.GetCurrentState(), &nextState);
     }
 
     TEST_F(HandDemoFSMTest, IdleUpdateReturnsNullAndKeepsIdleState)
     {
-        demo.currentState = &IdleState::GetInstance();
+        demo.TransitionToState(&IdleState::GetInstance());
 
-        demo.RunFSM();
+        timerService.TriggerNext();
 
-        EXPECT_EQ(demo.currentState, &IdleState::GetInstance());
+        EXPECT_EQ(demo.GetCurrentState(), &IdleState::GetInstance());
     }
 
     TEST_F(HandDemoFSMTest, DemoStateDefaultHooksCanBeCalled)
