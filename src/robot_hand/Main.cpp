@@ -71,7 +71,7 @@ int main()
     handBuilder.AttachServoToFinger(4, servos[4], 95.0f, 15.0f);
     IHand& hand = handBuilder.CreateHand();
 
-    HandDemo demo(hand);
+    HandDemo demo(hand, eventInfrastructure.systemTick, serialOutput);
 
     CommandLineApp commandLineApp(serialLineSource, serialOutput, hand, demo);
     

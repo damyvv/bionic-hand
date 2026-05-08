@@ -64,3 +64,14 @@ private:
     int counter = 0;
     
 };
+
+class GameCommand : public ICommand
+{
+public:
+    explicit GameCommand(HandDemo& handDemo);
+    void Execute(infra::MemoryRange<const std::string_view> arguments, ISerialOutput& serialOutput) override;
+    std::string_view Name() const override;
+    std::string_view Description() const override;
+private:
+    HandDemo& handDemo;
+};

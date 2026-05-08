@@ -213,3 +213,31 @@ std::string_view WaveCommand::Description() const
 {
     return "Waves the hand (optionally takes the number of waves as an argument)";
 }
+
+GameCommand::GameCommand(HandDemo& handDemo)
+    : handDemo(handDemo)
+{
+}
+
+void GameCommand::Execute(infra::MemoryRange<const std::string_view> arguments, ISerialOutput& serialOutput)
+{
+    if (!arguments.empty())
+    {
+        serialOutput.Write("This command does not take any arguments\n");
+        return;
+    }
+    auto& gameState = GameState::GetInstance();
+    gameState.SetNextState(&IdleState::GetInstance());
+    handDemo.TransitionToState(&gameState);
+    serialOutput.Write("Starting rock paper scissors game...\n");
+}
+
+std::string_view GameCommand::Name() const
+{
+    return "game";
+}
+
+std::string_view GameCommand::Description() const
+{
+    return "Starts a rock paper scissors game";
+}

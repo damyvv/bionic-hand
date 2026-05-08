@@ -2,8 +2,10 @@
 #include "DemoStates.hpp"
 #include "infra/timer/Timer.hpp"
 
-HandDemo::HandDemo(IHand& hand)
+HandDemo::HandDemo(IHand& hand, const infra::TimerService& timerService, ISerialOutput& serialOutput)
     : hand(hand)
+    , timerService(timerService)
+    , serialOutput(serialOutput)
     , currentState(&IdleState::GetInstance())
 {
 }

@@ -7,7 +7,7 @@
 
 class CommandLineApp
 {
-    static constexpr std::size_t CommandCount = 5;
+    static constexpr std::size_t CommandCount = 6;
     static constexpr std::size_t MaxArguments = 5;
 
     using CliType = CommandLine<CommandCount, MaxArguments>;
@@ -20,12 +20,14 @@ public:
         , closeHandCommand(hand)
         , demoCommand(handDemo)
         , waveCommand(handDemo)
+        , gameCommand(handDemo)
     {
         cli.RegisterCommand(helpCommand);
         cli.RegisterCommand(openHandCommand);
         cli.RegisterCommand(closeHandCommand);
         cli.RegisterCommand(demoCommand);
         cli.RegisterCommand(waveCommand);
+        cli.RegisterCommand(gameCommand);
 
         cli.Run();
     }
@@ -45,4 +47,5 @@ private:
     CloseHandCommand closeHandCommand;
     DemoCommand demoCommand;
     WaveCommand waveCommand;
+    GameCommand gameCommand;
 };

@@ -118,3 +118,17 @@ public:
 private:
     IdleState() = default;
 };
+
+class GameState : public DemoState
+{
+public:
+    static GameState& GetInstance();
+
+    void OnEntry(HandDemo& demo) override;
+    DemoState* Update(HandDemo& demo) override;
+
+private:
+    GameState();
+
+    int counter = 0;
+};
